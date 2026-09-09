@@ -23,7 +23,7 @@ defineProps<{
     </div>
 
     <div class="pt-4 border-t border-slate-800/60 mt-4 flex items-center justify-between text-xs text-slate-400">
-      <span>📅 {{ item.date }}</span>
+      <span>Terakhir Diubah: {{ item.date }}</span>
       <span>📦 {{ item.size }}</span>
     </div>
   </div>

@@ -3,11 +3,16 @@ import { computed } from 'vue'
 import type { ArchiveCategory, ArchiveItem } from '~/types/archive'
 
 const props = defineProps<{
-  categories: ArchiveCategory[]
   archives: ArchiveItem[]
 }>()
 
-const activeCategory = defineModel<string>({ default: 'akademik' })
+const activeCategory = defineModel<string>({ default: 'buku' })
+
+const categories: ArchiveCategory[] = [
+  { id: 'buku', label: 'Buku', count: 142, icon: '📚' },
+  { id: 'jurnal', label: 'Jurnal', count: 86, icon: '📜' },
+  { id: 'artikel', label: 'Artikel', count: 54, icon: '📖' },
+]
 
 const filteredArchives = computed(() => {
   if (!activeCategory.value) return props.archives
@@ -20,7 +25,7 @@ const filteredArchives = computed(() => {
     <!-- Section Header & Category Filters -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
       <div>
-        <h3 class="text-xl font-bold text-white tracking-tight">Katalog Arsip Unggulan</h3>
+        <h3 class="text-xl font-bold text-white tracking-tight">History Pengeditan Dokumen</h3>
         <p class="text-sm text-slate-400">Pilih kategori untuk memfilter dokumen arsip</p>
       </div>
 

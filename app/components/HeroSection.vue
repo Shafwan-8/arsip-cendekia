@@ -4,13 +4,6 @@ const searchKeyword = defineModel<string>({ default: '' })
 
 <template>
   <section class="text-center max-w-3xl mx-auto space-y-6 pt-4 sm:pt-8">
-    <!-- Release Badge -->
-    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300">
-      <span class="text-brand-400 font-bold">New Release</span>
-      <span class="text-slate-500">•</span>
-      <span>Inisialisasi Fondasi Proyek Berhasil</span>
-    </div>
-
     <!-- Main Title -->
     <h2 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white">
       Sistem Pengarsipan Modern <br>
@@ -20,7 +13,7 @@ const searchKeyword = defineModel<string>({ default: '' })
     </h2>
 
     <p class="text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
-      Selamat datang di fondasi aplikasi <strong>Arsip Cendekia</strong>. Siap dikembangkan untuk manajemen repositori dokumen digital institusi dan civitas akademika.
+      Selamat datang di fondasi aplikasi <strong>Arsip Cendekia</strong>. Siap dikembangkan untuk manajemen repositori dokumen digital.
     </p>
 
     <!-- Simulated Search Input -->
