@@ -1,17 +1,28 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const isMobileOpen = ref(false)
+</script>
+
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-white">
-    <!-- Ambient Background Glow -->
-    <AppBackground />
+  <div class="min-h-screen bg-[#090b0e] text-slate-100 flex font-sans antialiased selection:bg-rose-500 selection:text-white">
+    <!-- Sidebar Navigation -->
+    <AppSidebar
+      :is-mobile-open="isMobileOpen"
+      @close="isMobileOpen = false"
+    />
 
-    <!-- Top Navigation Header -->
-    <AppHeader />
+    <!-- Main Content Container -->
+    <div class="flex-1 flex flex-col min-w-0 min-h-screen">
+      <!-- Navbar Header (Only Avatar & Breadcrumbs) -->
+      <AppHeader @toggle-mobile="isMobileOpen = !isMobileOpen" />
 
-    <!-- Main Content Area with Nuxt Routing -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <NuxtPage />
-    </main>
-
-    <!-- Footer -->
-    <AppFooter />
+      <!-- Page Content -->
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <div class="max-w-7xl mx-auto">
+          <NuxtPage />
+        </div>
+      </main>
+    </div>
   </div>
 </template>
