@@ -4,6 +4,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss'],
   css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    public: {
+      openalexApiKey: '' // Otomatis dioverride oleh NUXT_PUBLIC_OPENALEX_API_KEY di .env
+    }
+  },
   experimental: {
     appManifest: false
   },
