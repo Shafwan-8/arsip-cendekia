@@ -8,8 +8,12 @@ defineEmits<{
 const route = useRoute()
 
 const pageTitle = () => {
-  if (route.path === '/literatur') return 'Literatur & Arsip'
-  return 'Dashboard'
+  if (route.path === '/literatur') return 'Pencarian Literatur'
+  if (route.path === '/arsip-literatur') return 'Literatur & Arsip'
+  if (route.path === '/buku') return 'Buku'
+  if (route.path === '/jurnal') return 'Jurnal'
+  if (route.path === '/skripsi') return 'Skripsi'
+  return 'Beranda'
 }
 </script>
 

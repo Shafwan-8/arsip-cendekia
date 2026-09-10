@@ -15,27 +15,44 @@ const route = useRoute()
 // Check active route
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/' || route.path === '/beranda'
+  if (path === '/literatur') return route.path === '/literatur'
+  if (path === '/buku') return route.path === '/buku'
+  if (path === '/jurnal') return route.path === '/jurnal'
+  if (path === '/skripsi') return route.path === '/skripsi'
   return route.path.startsWith(path)
 }
 
 const navItems = [
   {
-    label: 'Dashboard',
+    label: 'Beranda',
     path: '/',
     icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'
   },
   {
-    label: 'Literatur',
+    label: 'Pencarian Literatur',
     path: '/literatur',
-    icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
+    icon: 'm21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z'
   }
 ]
 
 const categoryItems = [
-  { label: 'Buku Referensi', count: '486', path: '/literatur?cat=Buku' },
-  { label: 'Jurnal Ilmiah', count: '354', path: '/literatur?cat=Jurnal' },
-  { label: 'Artikel & Riset', count: '288', path: '/literatur?cat=Artikel' }
+  {
+    label: 'Buku',
+    path: '/buku',
+    icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
+  },
+  {
+    label: 'Jurnal',
+    path: '/jurnal',
+    icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z'
+  },
+  {
+    label: 'Skripsi',
+    path: '/skripsi',
+    icon: 'M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342'
+  }
 ]
+
 </script>
 
 <template>
@@ -88,7 +105,7 @@ const categoryItems = [
           <!-- Main Menu -->
           <div>
             <p class="px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Overview
+              Dashboard
             </p>
             <nav class="space-y-1">
               <NuxtLink
@@ -114,7 +131,7 @@ const categoryItems = [
           <!-- Categories Shortcut -->
           <div>
             <p class="px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Kategori Arsip
+              Arsip Literatur
             </p>
             <div class="space-y-1">
               <NuxtLink
@@ -122,12 +139,15 @@ const categoryItems = [
                 :key="cat.label"
                 :to="cat.path"
                 @click="emit('close')"
-                class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 transition-colors"
+                class="flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+                :class="isActive(cat.path)
+                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
               >
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="cat.icon" />
+                </svg>
                 <span>{{ cat.label }}</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-400">
-                  {{ cat.count }}
-                </span>
               </NuxtLink>
             </div>
           </div>

@@ -71,7 +71,11 @@ const formatCategory = (type: string) => {
     case 'book':
       return { label: 'Buku', badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' }
     case 'journal-article':
+    case 'article':
       return { label: 'Jurnal', badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' }
+    case 'dissertation':
+    case 'thesis':
+      return { label: 'Skripsi', badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20' }
     default:
       return { label: type || 'Publikasi', badge: 'bg-slate-800 text-slate-300 border-slate-700' }
   }
@@ -112,6 +116,8 @@ const fetchLiterature = async () => {
       filterTokens.push('type:book')
     } else if (selectedCategory.value === 'Jurnal') {
       filterTokens.push('type:article')
+    } else if (selectedCategory.value === 'Skripsi') {
+      filterTokens.push('type:dissertation')
     }
 
     // 2. Filter Tahun
@@ -233,6 +239,7 @@ const resetFilter = () => {
                   { value: 'Semua', label: 'Semua' },
                   { value: 'Buku', label: 'Buku' },
                   { value: 'Jurnal', label: 'Jurnal' },
+                  { value: 'Skripsi', label: 'Skripsi' },
                 ]"
                 :key="cat.value"
                 :class="[
