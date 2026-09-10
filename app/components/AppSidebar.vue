@@ -25,7 +25,7 @@ const navItems = [
     icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'
   },
   {
-    label: 'Literatur & Arsip',
+    label: 'Literatur',
     path: '/literatur',
     icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
   }
@@ -50,12 +50,12 @@ const categoryItems = [
     <!-- Sidebar Container -->
     <aside
       :class="[
-        'fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#0d0f14] border-r border-slate-800/80 flex flex-col justify-between transition-transform duration-200 ease-in-out lg:static lg:translate-x-0',
+        'fixed top-0 bottom-0 left-0 z-50 w-64 h-screen bg-[#0d0f14] border-r border-slate-800/80 flex flex-col transition-transform duration-200 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 flex-shrink-0',
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
     >
-      <!-- Top Branding Section -->
-      <div class="p-5">
+      <!-- Top Branding & Navigation Section (Scrollable) -->
+      <div class="flex-1 overflow-y-auto p-5">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-rose-400 flex items-center justify-center text-white shadow-md shadow-rose-500/20">
@@ -134,8 +134,8 @@ const categoryItems = [
         </div>
       </div>
 
-      <!-- Bottom User Profile Card -->
-      <div class="p-4 border-t border-slate-800/80 bg-slate-950/40">
+      <!-- Bottom User Profile Card (Fixed di bawah layar) -->
+      <div class="p-4 border-t border-slate-800/80 bg-[#0d0f14] flex-shrink-0 mt-auto">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div class="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center">

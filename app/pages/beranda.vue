@@ -166,15 +166,6 @@ const filteredDocuments = computed(() => {
           <h3 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             {{ card.value }}
           </h3>
-          <div class="mt-2 flex items-center space-x-1.5 text-xs">
-            <span class="font-bold text-emerald-400 flex items-center">
-              <svg class="w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-              </svg>
-              {{ card.trend }}
-            </span>
-            <span class="text-slate-500">dari periode lalu</span>
-          </div>
         </div>
       </div>
     </div>
