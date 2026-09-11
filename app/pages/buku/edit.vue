@@ -9,30 +9,109 @@ useHead({
   title: 'Edit Dokumen Buku - Arsip Cendekia'
 })
 
+const { client, user } = useSupabase()
+
 const formData = ref({
   id: bookId,
-  title: 'Metodologi Penelitian Kearsipan & Dokumentasi Digital',
-  author: 'Prof. Dr. Ir. H. Ahmad Dahlan, M.Sc.',
-  publisher: 'Cendekia Pustaka Utama',
-  category: 'Pendidikan',
-  year: 2024,
-  pages: 284,
+  title: '',
+  author: '',
+  publisher: '',
+  category: 'buku',
+  year: new Date().getFullYear(),
+  pages: 0,
   status: 'Pribadi',
-  fileName: 'metodologi-penelitian-kearsipan.pdf'
+  fileName: ''
 })
 
+const isLoading = ref(true)
 const isSaving = ref(false)
 const savedSuccess = ref(false)
+const errorMessage = ref('')
 
-const handleSave = () => {
+const loadDocument = async () => {
+  if (!bookId || !client) return
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    let query = client
+      .from('documents')
+      .select('*')
+      .eq('id', bookId)
+
+    if (user.value?.id) {
+      query = query.eq('user_id', user.value.id)
+    }
+
+    const { data, error } = await query.single()
+    if (error) throw error
+
+    if (data) {
+      formData.value = {
+        id: data.id,
+        title: data.title || '',
+        author: data.author || '',
+        publisher: data.publisher || '',
+        category: data.category || 'buku',
+        year: data.year || new Date().getFullYear(),
+        pages: data.pages || 0,
+        status: data.status || 'Pribadi',
+        fileName: data.file_name || 'dokumen.pdf'
+      }
+    }
+  } catch (err: any) {
+    console.error('Error load document:', err)
+    errorMessage.value = err?.message || 'Gagal memuat dokumen dari Supabase.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadDocument()
+})
+
+const handleSave = async () => {
+  if (!bookId || !client) return
   isSaving.value = true
-  setTimeout(() => {
-    isSaving.value = false
+  errorMessage.value = ''
+
+  try {
+    const updatePayload: Record<string, any> = {
+      title: formData.value.title.trim(),
+      author: formData.value.author.trim(),
+      publisher: formData.value.publisher.trim(),
+      year: Number(formData.value.year),
+      pages: Number(formData.value.pages)
+    }
+
+    if (user.value?.id) {
+      updatePayload.user_id = user.value.id
+    }
+
+    let query = client
+      .from('documents')
+      .update(updatePayload)
+      .eq('id', bookId)
+
+    if (user.value?.id) {
+      query = query.eq('user_id', user.value.id)
+    }
+
+    const { error } = await query
+
+    if (error) throw error
+
     savedSuccess.value = true
     setTimeout(() => {
       navigateTo('/buku')
     }, 1200)
-  }, 600)
+  } catch (err: any) {
+    console.error('Error update document:', err)
+    errorMessage.value = err?.message || 'Gagal menyimpan perubahan ke Supabase.'
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -59,6 +138,15 @@ const handleSave = () => {
           </p>
         </div>
       </div>
+    </div>
+
+    <!-- Alert Error -->
+    <div
+      v-if="errorMessage"
+      class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center space-x-2"
+    >
+      <span>⚠️</span>
+      <span>{{ errorMessage }}</span>
     </div>
 
     <!-- Alert Sukses Simpan -->
