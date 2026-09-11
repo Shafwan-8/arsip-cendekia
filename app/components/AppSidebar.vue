@@ -12,6 +12,16 @@ const emit = defineEmits<{
 
 const route = useRoute()
 
+// Supabase Auth Integration
+const { user, signOut } = useSupabase()
+
+const userEmail = computed(() => user.value?.email || 'admin@cendekia.id')
+const userInitials = computed(() => {
+  if (!user.value?.email) return 'AC'
+  const name = user.value.email.split('@')[0]
+  return name.slice(0, 2).toUpperCase()
+})
+
 // Check active route
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/' || route.path === '/beranda'
@@ -157,21 +167,30 @@ const categoryItems = [
       <!-- Bottom User Profile Card (Fixed di bawah layar) -->
       <div class="p-4 border-t border-slate-800/80 bg-[#0d0f14] flex-shrink-0 mt-auto">
         <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center">
-              AS
+          <div class="flex items-center space-x-3 min-w-0 mr-2">
+            <div class="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
+              {{ userInitials }}
             </div>
-            <div>
-              <p class="text-xs font-semibold text-white leading-tight">Admin Cendekia</p>
-              <p class="text-[10px] text-slate-500">Super Admin</p>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white leading-tight truncate" :title="userEmail">
+                {{ userEmail.split('@')[0] }}
+              </p>
+              <p class="text-[10px] text-slate-500 truncate" :title="userEmail">
+                {{ userEmail }}
+              </p>
             </div>
           </div>
 
-          <div class="text-slate-500 hover:text-slate-300 transition-colors cursor-pointer" title="Keluar">
+          <button
+            type="button"
+            @click="signOut"
+            class="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
+            title="Keluar dari Akun"
+          >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-          </div>
+          </button>
         </div>
       </div>
     </aside>

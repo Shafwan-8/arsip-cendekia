@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 defineEmits<{
@@ -6,6 +7,13 @@ defineEmits<{
 }>()
 
 const route = useRoute()
+const { user } = useSupabase()
+
+const userInitials = computed(() => {
+  if (!user.value?.email) return 'AC'
+  const name = user.value.email.split('@')[0]
+  return name.slice(0, 2).toUpperCase()
+})
 
 const pageTitle = () => {
   if (route.path === '/literatur') return 'Pencarian Literatur'
@@ -43,7 +51,7 @@ const pageTitle = () => {
     <div class="flex items-center space-x-3">
       <div class="relative">
         <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500/20 to-rose-400/30 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center shadow-sm">
-          AS
+          {{ userInitials }}
         </div>
         <!-- Online dot status indicator -->
         <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0d0f14]" />

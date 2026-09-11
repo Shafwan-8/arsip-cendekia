@@ -5,8 +5,12 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss'],
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
+    supabaseSecretKey: process.env.SUPABASE_SECRET_KEY,
     public: {
-      openalexApiKey: '' // Otomatis dioverride oleh NUXT_PUBLIC_OPENALEX_API_KEY di .env
+      openalexApiKey: process.env.OPENALEX_API_KEY,
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
+      supabaseJwksUrl: process.env.SUPABASE_JWKS_URL
     }
   },
   experimental: {
