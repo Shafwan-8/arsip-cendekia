@@ -41,6 +41,25 @@ export const createStoragePath = (folder: string, fileName: string): string => {
 }
 
 /**
+ * Format tanggal upload menjadi format d/mm/yyyy : HH:mm
+ */
+export const formatUploadDate = (dateStr: string): string => {
+  if (!dateStr) return '-'
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
+
+    const day = date.getDate()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+
+    return `${day}/${month}/${year}`
+  } catch {
+    return dateStr
+  }
+}
+
+/**
  * Konfigurasi dokumen berdasarkan kategori (Buku, Jurnal, Skripsi).
  */
 export const documentCategoryConfig: Record<'buku' | 'jurnal' | 'skripsi', DocumentCategoryConfig> = {
@@ -57,7 +76,7 @@ export const documentCategoryConfig: Record<'buku' | 'jurnal' | 'skripsi', Docum
     uploadBtnText: 'Upload Buku Baru',
     uploadModalTitle: 'Upload Buku ke Arsip',
     deleteModalTitle: 'Hapus Buku Literatur?',
-    emptyTitle: 'Belum ada buku di Supabase',
+    emptyTitle: 'Belum ada buku yang diupload',
     emptyDescription: 'Belum ada data dokumen kategori buku. Klik tombol di bawah untuk mengunggah buku pertama Anda.',
     searchPlaceholder: 'Cari judul buku, penulis, penerbit, atau nama file...',
     theme: {
@@ -86,7 +105,7 @@ export const documentCategoryConfig: Record<'buku' | 'jurnal' | 'skripsi', Docum
     uploadBtnText: 'Upload Jurnal Baru',
     uploadModalTitle: 'Upload Jurnal ke Arsip',
     deleteModalTitle: 'Hapus Jurnal Ilmiah?',
-    emptyTitle: 'Belum ada jurnal di Supabase',
+    emptyTitle: 'Belum ada jurnal yang diupload',
     emptyDescription: 'Belum ada data dokumen kategori jurnal. Klik tombol di bawah untuk mengunggah jurnal pertama Anda.',
     searchPlaceholder: 'Cari judul jurnal, penulis, penerbit, atau nama file...',
     theme: {
@@ -115,7 +134,7 @@ export const documentCategoryConfig: Record<'buku' | 'jurnal' | 'skripsi', Docum
     uploadBtnText: 'Upload Skripsi Baru',
     uploadModalTitle: 'Upload Skripsi ke Arsip',
     deleteModalTitle: 'Hapus Skripsi?',
-    emptyTitle: 'Belum ada skripsi di Supabase',
+    emptyTitle: 'Belum ada skripsi yang diupload',
     emptyDescription: 'Belum ada data dokumen kategori skripsi. Klik tombol di bawah untuk mengunggah skripsi pertama Anda.',
     searchPlaceholder: 'Cari judul skripsi, penulis, institusi, atau nama file...',
     theme: {

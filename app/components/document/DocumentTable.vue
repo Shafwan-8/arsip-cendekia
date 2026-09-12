@@ -31,7 +31,7 @@ defineEmits<{
           <th class="py-3.5 px-4">Informasi Dokumen</th>
           <th class="py-3.5 px-4">Tahun & Halaman</th>
           <th class="py-3.5 px-4">Berkas PDF</th>
-          <th class="py-3.5 px-4">Waktu Upload</th>
+          <th class="py-3.5 px-4">Tanggal Upload</th>
           <th class="py-3.5 px-4 text-center w-24">Aksi</th>
         </tr>
       </thead>
@@ -44,7 +44,7 @@ defineEmits<{
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
               </svg>
-              <p class="text-xs text-slate-400">Menghubungkan ke Supabase & memuat daftar dokumen...</p>
+              <p class="text-xs text-slate-400">Menghubungkan ke Database & memuat daftar dokumen...</p>
             </div>
           </td>
         </tr>
