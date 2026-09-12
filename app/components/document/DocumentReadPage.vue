@@ -1,16 +1,62 @@
 <script setup lang="ts">
-import type { DocumentCategoryConfig } from '~/types/document'
+import { ref, computed, onMounted } from 'vue'
+import type { DocumentCategoryConfig, DocumentItem } from '~/types/document'
 
 const props = defineProps<{
   config: DocumentCategoryConfig
 }>()
 
 const route = useRoute()
+const { client } = useSupabase()
 
-const docTitle = (route.query.title as string) || ''
+// Parameter dari route query
+const initialTitle = (route.query.title as string) || ''
 const docId = (route.query.id as string) || ''
-const fileName = (route.query.fileName as string) || ''
-const fileUrl = (route.query.file as string) || ''
+const initialFileName = (route.query.fileName as string) || ''
+const initialFileUrl = (route.query.file as string) || ''
+
+// State dinamis dokumen
+const currentTitle = ref(initialTitle)
+const currentFileName = ref(initialFileName)
+const currentFileUrl = ref(initialFileUrl)
+const isLoadingMetadata = ref(false)
+const totalPagesCount = ref<number | null>(null)
+
+useHead({
+  title: computed(() => `${currentTitle.value || props.config.label} - Pembaca PDF Arsip Cendekia`)
+})
+
+// Mengambil metadata lengkap dokumen dari Supabase jika fileUrl belum tersedia di query
+onMounted(async () => {
+  if (!currentFileUrl.value && docId && client) {
+    isLoadingMetadata.value = true
+    try {
+      const { data, error } = await client
+        .from('documents')
+        .select('*')
+        .eq('id', docId)
+        .single()
+
+      if (!error && data) {
+        const item = data as DocumentItem
+        currentTitle.value = currentTitle.value || item.title
+        currentFileName.value = currentFileName.value || item.file_name
+        currentFileUrl.value = item.file_url
+        if (item.pages) {
+          totalPagesCount.value = item.pages
+        }
+      }
+    } catch (err) {
+      console.error('Gagal memuat detail dokumen dari Supabase:', err)
+    } finally {
+      isLoadingMetadata.value = false
+    }
+  }
+})
+
+const handlePdfLoaded = (pages: number) => {
+  totalPagesCount.value = pages
+}
 </script>
 
 <template>
@@ -32,7 +78,7 @@ const fileUrl = (route.query.file as string) || ''
         <div>
           <div class="flex items-center space-x-2">
             <h2 class="text-sm sm:text-base font-bold text-white tracking-tight line-clamp-1">
-              {{ docTitle }}
+              {{ currentTitle || (isLoadingMetadata ? 'Memuat dokumen...' : 'Membaca Dokumen') }}
             </h2>
             <span
               class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border"
@@ -42,7 +88,8 @@ const fileUrl = (route.query.file as string) || ''
             </span>
           </div>
           <p class="text-xs text-slate-400 mt-0.5">
-            Berkas: <span class="text-slate-300 font-mono">{{ fileName }}</span>
+            Berkas: <span class="text-slate-300 font-mono">{{ currentFileName || (isLoadingMetadata ? 'Memeriksa...' : '-') }}</span>
+            <span v-if="totalPagesCount" class="text-slate-500 ml-2">• <span class="text-slate-300">{{ totalPagesCount }} Halaman</span></span>
           </p>
         </div>
       </div>
@@ -50,6 +97,7 @@ const fileUrl = (route.query.file as string) || ''
       <!-- Action Buttons in Reader -->
       <div class="flex items-center space-x-2">
         <NuxtLink
+          v-if="docId"
           :to="`${config.basePath}/edit?id=${docId}`"
           class="px-3.5 py-1.5 rounded-xl border border-slate-800 bg-[#090b0e] hover:bg-slate-900 text-slate-300 hover:text-white text-xs font-semibold transition-colors flex items-center space-x-1.5"
         >
@@ -60,8 +108,8 @@ const fileUrl = (route.query.file as string) || ''
         </NuxtLink>
 
         <a
-          v-if="fileUrl"
-          :href="fileUrl"
+          v-if="currentFileUrl"
+          :href="currentFileUrl"
           target="_blank"
           download
           class="px-3.5 py-1.5 rounded-xl text-white text-xs font-semibold transition-colors flex items-center space-x-1.5"
@@ -75,27 +123,59 @@ const fileUrl = (route.query.file as string) || ''
       </div>
     </div>
 
-    <!-- PDF.js Container Placeholder -->
-    <div class="bg-[#0e1117] border border-slate-800/90 rounded-2xl p-6 min-h-[70vh] flex flex-col items-center justify-center text-center space-y-4 shadow-inner">
-      <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-md" :class="config.theme.primaryText">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
+    <!-- PDF Viewer Area (pdf.js dengan TextLayer untuk Seleksi & Copy) -->
+    <ClientOnly>
+      <div v-if="currentFileUrl">
+        <DocumentPdfViewer
+          :file-url="currentFileUrl"
+          :file-name="currentFileName"
+          :config="config"
+          @loaded="handlePdfLoaded"
+        />
       </div>
 
-      <div class="max-w-md space-y-1">
-        <h3 class="text-base font-bold text-white">Area Viewer PDF (pdf.js)</h3>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Halaman ini siap dihubungkan dengan library <span class="font-semibold font-mono" :class="config.theme.primaryText">pdf.js</span> atau komponen canvas reader untuk membaca berkas dari Supabase Storage.
-        </p>
+      <!-- State Jika Belum Ada Berkas yang Dipilih -->
+      <div
+        v-else-if="!isLoadingMetadata"
+        class="bg-[#0e1117] border border-slate-800/90 rounded-2xl p-10 min-h-[60vh] flex flex-col items-center justify-center text-center space-y-4 shadow-inner"
+      >
+        <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-md text-amber-400">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+
+        <div class="max-w-md space-y-1">
+          <h3 class="text-base font-bold text-white">Berkas PDF Tidak Ditentukan</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Tidak ada dokumen yang dipilih untuk dibaca. Silakan pilih dokumen dari daftar {{ config.label.toLowerCase() }} Anda.
+          </p>
+        </div>
+
+        <NuxtLink
+          :to="config.basePath"
+          class="px-4 py-2 rounded-xl text-white text-xs font-semibold shadow-md transition-colors"
+          :class="config.theme.primaryBtn"
+        >
+          Kembali ke Daftar {{ config.label }}
+        </NuxtLink>
       </div>
 
-      <div class="p-3 bg-[#090b0e] border border-slate-800/80 rounded-xl text-xs text-slate-400 font-mono text-left max-w-sm w-full space-y-1">
-        <div class="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Parameter Terhubung:</div>
-        <div class="truncate text-slate-300">ID: {{ docId }}</div>
-        <div class="truncate text-slate-300">File: {{ fileName }}</div>
-        <div class="truncate text-slate-400 text-[10px]">URL: {{ fileUrl }}</div>
+      <!-- Loading State Metadata -->
+      <div
+        v-else
+        class="bg-[#0e1117] border border-slate-800/90 rounded-2xl p-10 min-h-[60vh] flex flex-col items-center justify-center text-center space-y-4 shadow-inner"
+      >
+        <div class="w-10 h-10 rounded-full border-4 border-slate-800 border-t-blue-500 animate-spin" />
+        <p class="text-xs text-slate-400">Menghubungkan ke Supabase Storage...</p>
       </div>
-    </div>
+
+      <template #fallback>
+        <div class="bg-[#0e1117] border border-slate-800/90 rounded-2xl p-10 min-h-[60vh] flex flex-col items-center justify-center text-center space-y-4 shadow-inner">
+          <div class="w-10 h-10 rounded-full border-4 border-slate-800 border-t-blue-500 animate-spin" />
+          <p class="text-xs text-slate-400">Menyiapkan pembaca PDF...</p>
+        </div>
+      </template>
+    </ClientOnly>
   </div>
 </template>
