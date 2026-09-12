@@ -18,9 +18,9 @@ const userInitials = computed(() => {
 const pageTitle = () => {
   if (route.path === '/literatur') return 'Pencarian Literatur'
   if (route.path === '/arsip-literatur') return 'Literatur & Arsip'
-  if (route.path === '/buku') return 'Buku'
-  if (route.path === '/jurnal') return 'Jurnal'
-  if (route.path === '/skripsi') return 'Skripsi'
+  if (route.path === '/buku' || route.path === '/buku/read' || route.path === '/buku/edit') return 'Buku'
+  if (route.path === '/jurnal' || route.path === '/jurnal/read' || route.path === '/jurnal/edit') return 'Jurnal'
+  if (route.path === '/skripsi' || route.path === '/skripsi/read' || route.path === '/skripsi/edit') return 'Skripsi'
   return 'Beranda'
 }
 </script>
