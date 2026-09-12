@@ -69,13 +69,13 @@ watch(() => route.query.cat, (newCat) => {
 const formatCategory = (type: string) => {
   switch (type?.toLowerCase()) {
     case 'book':
-      return { label: 'Buku', badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' }
+      return { label: 'Buku', badge: 'bg-rose-500/10 text-rose-400 border-rose-500/20' }
     case 'journal-article':
     case 'article':
-      return { label: 'Jurnal', badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' }
+      return { label: 'Jurnal', badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20' }
     case 'dissertation':
     case 'thesis':
-      return { label: 'Skripsi', badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20' }
+      return { label: 'Skripsi', badge: 'bg-violet-500/10 text-violet-400 border-violet-500/20' }
     default:
       return { label: type || 'Publikasi', badge: 'bg-slate-800 text-slate-300 border-slate-700' }
   }
