@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 
 defineEmits<{
@@ -7,12 +7,19 @@ defineEmits<{
 }>()
 
 const route = useRoute()
-const { user } = useSupabase()
+const { user, signOut } = useSupabase()
+
+const isDropdownOpen = ref(false)
+const dropdownRef = ref<HTMLDivElement | null>(null)
 
 const userInitials = computed(() => {
   if (!user.value?.email) return 'AC'
   const name = user.value.email.split('@')[0]
   return name.slice(0, 2).toUpperCase()
+})
+
+const userEmail = computed(() => {
+  return user.value?.email
 })
 
 const pageTitle = () => {
@@ -23,6 +30,33 @@ const pageTitle = () => {
   if (route.path === '/skripsi' || route.path === '/skripsi/read' || route.path === '/skripsi/edit') return 'Skripsi'
   return 'Beranda'
 }
+
+const toggleDropdown = () => {
+  isDropdownOpen.value = !isDropdownOpen.value
+}
+
+const closeDropdown = () => {
+  isDropdownOpen.value = false
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
+    closeDropdown()
+  }
+}
+
+const handleLogout = async () => {
+  closeDropdown()
+  await signOut()
+}
+
+onMounted(() => {
+  window.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <template>
@@ -47,15 +81,58 @@ const pageTitle = () => {
       </div>
     </div>
 
-    <!-- Right: User Avatar Only (Sesuai Permintaan) -->
-    <div class="flex items-center space-x-3">
-      <div class="relative">
+    <!-- Right: User Avatar & Logout Dropdown -->
+    <div ref="dropdownRef" class="relative">
+      <button
+        type="button"
+        @click.stop="toggleDropdown"
+        class="flex items-center space-x-2 p-0.5 rounded-full hover:ring-2 hover:ring-slate-700 transition-all cursor-pointer focus:outline-none"
+        aria-label="Menu Pengguna"
+        :aria-expanded="isDropdownOpen"
+      >
         <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500/20 to-rose-400/30 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center shadow-sm">
           {{ userInitials }}
         </div>
-        <!-- Online dot status indicator -->
-        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0d0f14]" />
-      </div>
+      </button>
+
+      <!-- Dropdown Menu -->
+      <transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="transform scale-95 opacity-0"
+        enter-to-class="transform scale-100 opacity-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="transform scale-100 opacity-100"
+        leave-to-class="transform scale-95 opacity-0"
+      >
+        <div
+          v-if="isDropdownOpen"
+          class="absolute right-0 mt-2 w-56 rounded-2xl bg-[#0e1117] border border-slate-800/90 shadow-2xl p-2 z-50 divide-y divide-slate-800/80"
+        >
+          <!-- Info Pengguna -->
+          <div class="px-3 py-2.5">
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              Masuk Sebagai
+            </p>
+            <p class="text-xs font-bold text-white truncate mt-0.5" :title="userEmail">
+              {{ userEmail }}
+            </p>
+          </div>
+
+          <!-- Opsi Logout -->
+          <div class="pt-1.5 mt-1.5">
+            <button
+              type="button"
+              @click="handleLogout"
+              class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors text-left cursor-pointer"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Keluar</span>
+            </button>
+          </div>
+        </div>
+      </transition>
     </div>
   </header>
 </template>

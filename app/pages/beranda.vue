@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import type { DocumentItem } from '~/types/document'
+import { formatUploadDate } from '~/utils/document'
 
 definePageMeta({
   alias: ['/']
@@ -203,7 +204,7 @@ onMounted(() => {
             Dokumen & Berkas Terkini
           </h3>
           <p class="text-xs text-slate-400">
-            Daftar berkas arsip dokumen yang tersimpan di sistem Supabase
+            Daftar berkas arsip dokumen yang tersimpan di sistem.
           </p>
         </div>
 
@@ -315,7 +316,7 @@ onMounted(() => {
                 </span>
               </td>
               <td class="py-3.5 px-4 text-slate-400 font-mono">{{ doc.file_size || '-' }}</td>
-              <td class="py-3.5 px-4 text-slate-400">{{ doc.uploaded_at || '-' }}</td>
+              <td class="py-3.5 px-4 text-slate-400">{{ formatUploadDate(doc.uploaded_at) || '-' }}</td>
               <td class="py-3.5 px-4 text-right">
                 <NuxtLink
                   :to="{

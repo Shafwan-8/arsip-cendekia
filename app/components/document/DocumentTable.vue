@@ -31,7 +31,7 @@ defineEmits<{
           <th class="py-3.5 px-4">Informasi Dokumen</th>
           <th class="py-3.5 px-4">Tahun & Halaman</th>
           <th class="py-3.5 px-4">Berkas PDF</th>
-          <th class="py-3.5 px-4">Tanggal Upload</th>
+          <th class="py-3.5 px-4">Tanggal Unggah</th>
           <th class="py-3.5 px-4 text-center w-24">Aksi</th>
         </tr>
       </thead>
