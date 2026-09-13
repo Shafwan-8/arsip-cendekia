@@ -197,17 +197,8 @@ const handleLogin = async () => {
 
       <!-- Footer & Navigasi Kembali -->
       <div class="text-center space-y-2">
-        <NuxtLink
-          to="/"
-          class="inline-flex items-center space-x-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
-        >
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span>Kembali ke Beranda</span>
-        </NuxtLink>
         <p class="text-[11px] text-slate-500">
-          © 2026 Arsip Cendekia. Sistem Manajemen Kearsipan Digital.
+          © 2026 Arsip Cendekia.
         </p>
       </div>
     </div>
