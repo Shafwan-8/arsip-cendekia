@@ -47,7 +47,7 @@ onMounted(async () => {
         }
       }
     } catch (err) {
-      console.error('Gagal memuat detail dokumen dari Supabase:', err)
+      console.error('Gagal memuat detail dokumen dari Database:', err)
     } finally {
       isLoadingMetadata.value = false
     }
@@ -56,6 +56,32 @@ onMounted(async () => {
 
 const handlePdfLoaded = (pages: number) => {
   totalPagesCount.value = pages
+}
+
+const isDownloading = ref(false)
+
+const downloadFile = async () => {
+  if (!currentFileUrl.value) return
+  isDownloading.value = true
+  try {
+    const response = await fetch(currentFileUrl.value)
+    if (!response.ok) throw new Error('Gagal mengunduh berkas.')
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = currentFileName.value || 'dokumen.pdf'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Download error:', err)
+    // Fallback: buka di tab baru
+    window.open(currentFileUrl.value, '_blank')
+  } finally {
+    isDownloading.value = false
+  }
 }
 </script>
 
@@ -115,19 +141,22 @@ const handlePdfLoaded = (pages: number) => {
           <span>Edit PDF</span>
         </NuxtLink>
 
-        <a
+        <button
           v-if="currentFileUrl"
-          :href="currentFileUrl"
-          target="_blank"
-          download
-          class="px-3.5 py-1.5 rounded-xl text-white text-xs font-semibold transition-colors flex items-center space-x-1.5"
+          @click="downloadFile"
+          :disabled="isDownloading"
+          class="px-3.5 py-1.5 rounded-xl text-white text-xs font-semibold transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
           :class="config.theme.primaryBtn"
         >
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg v-if="isDownloading" class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          <span>Unduh Berkas</span>
-        </a>
+          <span>{{ isDownloading ? 'Mengunduh...' : 'Unduh Berkas' }}</span>
+        </button>
       </div>
     </div>
 

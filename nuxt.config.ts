@@ -20,7 +20,7 @@ export default defineNuxtConfig({
     head: {
       title: 'Arsip Cendekia - Sistem Manajemen & Pengarsipan Digital',
       meta: [
-        { name: 'description', content: 'Platform manajemen pengarsipan dokumen digital modern untuk institusi dan lembaga pendidikan Arsip Cendekia.' },
+        { name: 'description', content: 'Aplikasi manajemen pengarsipan dokumen digital.' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' }
       ],
       link: [
