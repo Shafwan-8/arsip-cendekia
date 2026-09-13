@@ -25,7 +25,7 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
     author: '',
     publisher: '',
     category,
-    year: new Date().getFullYear(),
+    year: '',
     file_name: '',
     file_size: '',
     pages: '',
@@ -38,7 +38,7 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
       author: '',
       publisher: '',
       category,
-      year: new Date().getFullYear(),
+      year: '',
       file_name: '',
       file_size: '',
       pages: '',
@@ -109,26 +109,6 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
       return
     }
 
-    if (!uploadForm.value.author.trim()) {
-      uploadErrorMessage.value = 'Nama penulis / pengarang wajib diisi.'
-      return
-    }
-
-    if (!uploadForm.value.publisher.trim()) {
-      uploadErrorMessage.value = 'Penerbit wajib diisi.'
-      return
-    }
-
-    if (!uploadForm.value.year) {
-      uploadErrorMessage.value = 'Tahun terbit wajib diisi.'
-      return
-    }
-
-    if (!uploadForm.value.pages) {
-      uploadErrorMessage.value = 'Jumlah halaman wajib diisi.'
-      return
-    }
-
     isUploading.value = true
     uploadErrorMessage.value = ''
 
@@ -163,14 +143,20 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
       }
 
       // 4. Masukkan record data ke tabel "documents" di Supabase
+      //    Field opsional yang kosong diganti dengan "-"
+      const authorVal = uploadForm.value.author.trim()
+      const publisherVal = uploadForm.value.publisher.trim()
+      const yearVal = uploadForm.value.year ? Number(uploadForm.value.year) : 0
+      const pagesVal = uploadForm.value.pages ? Number(uploadForm.value.pages) : 0
+
       const newRecord = {
         user_id: currentUserId,
         title: uploadForm.value.title.trim(),
-        author: uploadForm.value.author.trim(),
-        publisher: uploadForm.value.publisher.trim(),
+        author: authorVal || '-',
+        publisher: publisherVal || '-',
         category,
-        year: Number(uploadForm.value.year),
-        pages: Number(uploadForm.value.pages),
+        year: yearVal,
+        pages: pagesVal,
         file_name: uploadForm.value.file_name,
         file_size: uploadForm.value.file_size,
         file_url: filePublicUrl,

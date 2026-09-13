@@ -1,4 +1,4 @@
-<script setup lang="ts">
+  <script setup lang="ts">
 import { ref } from 'vue'
 import type { DocumentCategoryConfig, DocumentUploadForm } from '~/types/document'
 
@@ -172,13 +172,12 @@ const triggerFileInput = () => {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="space-y-1.5">
               <label for="docAuthor" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Penulis / Pengarang <span :class="config.theme.primaryText">*</span>
+                Penulis / Pengarang <span class="text-slate-500 text-[10px] font-normal normal-case">(opsional)</span>
               </label>
               <input
                 id="docAuthor"
                 v-model="form.author"
                 type="text"
-                required
                 placeholder="Contoh: Dr. Ir. Ahmad Dahlan"
                 class="w-full px-3.5 py-2.5 bg-[#090b0e] border border-slate-800 hover:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
                 :class="config.theme.focusBorder"
@@ -187,13 +186,12 @@ const triggerFileInput = () => {
 
             <div class="space-y-1.5">
               <label for="docPublisher" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Penerbit / Institusi <span :class="config.theme.primaryText">*</span>
+                Penerbit / Institusi <span class="text-slate-500 text-[10px] font-normal normal-case">(opsional)</span>
               </label>
               <input
                 id="docPublisher"
                 v-model="form.publisher"
                 type="text"
-                required
                 placeholder="Contoh: Cendekia Pustaka Utama"
                 class="w-full px-3.5 py-2.5 bg-[#090b0e] border border-slate-800 hover:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
                 :class="config.theme.focusBorder"
@@ -205,7 +203,7 @@ const triggerFileInput = () => {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="space-y-1.5">
               <label for="docYear" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Tahun Terbit <span :class="config.theme.primaryText">*</span>
+                Tahun Terbit <span class="text-slate-500 text-[10px] font-normal normal-case">(opsional)</span>
               </label>
               <input
                 id="docYear"
@@ -213,7 +211,6 @@ const triggerFileInput = () => {
                 type="number"
                 min="1900"
                 max="2100"
-                required
                 placeholder="Contoh: 2026"
                 class="w-full px-3.5 py-2.5 bg-[#090b0e] border border-slate-800 hover:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
                 :class="config.theme.focusBorder"
@@ -222,14 +219,13 @@ const triggerFileInput = () => {
 
             <div class="space-y-1.5">
               <label for="docPages" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Jumlah Halaman <span :class="config.theme.primaryText">*</span>
+                Jumlah Halaman <span class="text-slate-500 text-[10px] font-normal normal-case">(opsional)</span>
               </label>
               <input
                 id="docPages"
                 v-model="form.pages"
                 type="number"
                 min="1"
-                required
                 placeholder="Contoh: 284"
                 class="w-full px-3.5 py-2.5 bg-[#090b0e] border border-slate-800 hover:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
                 :class="config.theme.focusBorder"
