@@ -2,7 +2,7 @@
 import { documentCategoryConfig } from '~/utils/document'
 import DocumentEditPage from '~/components/document/DocumentEditPage.vue'
 
-const config = documentCategoryConfig.buku
+const config = documentCategoryConfig.skripsi
 </script>
 
 <template>
