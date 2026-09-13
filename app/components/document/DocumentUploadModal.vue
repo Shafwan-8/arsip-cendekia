@@ -172,7 +172,7 @@ const triggerFileInput = () => {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="space-y-1.5">
               <label for="docAuthor" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Penulis / Pengarang <span class="text-slate-500 text-[10px] font-normal normal-case">(opsional)</span>
+                Penulis / Pengarang
               </label>
               <input
                 id="docAuthor"
@@ -186,7 +186,7 @@ const triggerFileInput = () => {
 
             <div class="space-y-1.5">
               <label for="docPublisher" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Penerbit / Institusi <span class="text-slate-500 text-[10px] font-normal normal-case">(opsional)</span>
+                Penerbit / Institusi
               </label>
               <input
                 id="docPublisher"
@@ -203,7 +203,7 @@ const triggerFileInput = () => {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="space-y-1.5">
               <label for="docYear" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Tahun Terbit <span class="text-slate-500 text-[10px] font-normal normal-case">(opsional)</span>
+                Tahun Terbit
               </label>
               <input
                 id="docYear"
@@ -219,7 +219,7 @@ const triggerFileInput = () => {
 
             <div class="space-y-1.5">
               <label for="docPages" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Jumlah Halaman <span class="text-slate-500 text-[10px] font-normal normal-case">(opsional)</span>
+                Jumlah Halaman
               </label>
               <input
                 id="docPages"
