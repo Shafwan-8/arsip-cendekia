@@ -1,155 +1,176 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { ArchiveItem } from '~/types/archive'
+import { ref, computed, onMounted, watch } from 'vue'
+import type { DocumentItem } from '~/types/document'
 
 definePageMeta({
   alias: ['/']
 })
 
 useHead({
-  title: 'Dashboard Admin - Arsip Cendekia'
+  title: 'Dashboard - Arsip Cendekia'
 })
 
-// Time Range Filter
-const selectedTime = ref('30h')
-const timeOptions = [
-  { id: '7h', label: '7 Hari' },
-  { id: '30h', label: '30 Hari' },
-  { id: '90h', label: '90 Hari' },
-  { id: 'all', label: 'Semua Waktu' }
-]
+const { client, user } = useSupabase()
 
-// 4 Kartu Metrik Kontekstual Arsip Cendekia (Emulasi Visual Template)
-const metrics = [
+const documents = ref<DocumentItem[]>([])
+const isLoading = ref(true)
+const error = ref('')
+const activeCategoryFilter = ref('semua')
+
+// Ambil data dokumen dari Supabase
+const fetchDashboardData = async () => {
+  if (!client) return
+  isLoading.value = true
+  error.value = ''
+
+  try {
+    const { data: sessionData } = await client.auth.getSession()
+    const activeUser = sessionData?.session?.user ?? user.value
+    const currentUserId = activeUser?.id
+
+    let query = client
+      .from('documents')
+      .select('*')
+
+    // Filter dokumen milik pengguna yang sedang login jika ada
+    if (currentUserId) {
+      query = query.eq('user_id', currentUserId)
+    }
+
+    const { data, error: fetchErr } = await query.order('id', { ascending: false })
+
+    if (fetchErr) {
+      throw fetchErr
+    }
+
+    if (data) {
+      documents.value = data as DocumentItem[]
+    }
+  } catch (err: any) {
+    console.error('Gagal mengambil data dashboard dari Supabase:', err)
+    error.value = err?.message || 'Gagal memuat data arsip dari Supabase.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Perhitungan metrik dokumen dari data asli Supabase
+const totalCount = computed(() => documents.value.length)
+const bukuCount = computed(() => documents.value.filter(d => d.category?.toLowerCase() === 'buku').length)
+const jurnalCount = computed(() => documents.value.filter(d => d.category?.toLowerCase() === 'jurnal').length)
+const skripsiCount = computed(() => documents.value.filter(d => d.category?.toLowerCase() === 'skripsi').length)
+
+// 4 Kartu Metrik Kontekstual Arsip Cendekia
+const metrics = computed(() => [
   {
     title: 'Total Koleksi Arsip',
-    value: '1,284',
-    trend: '+14.2%',
-    isPositive: true,
+    value: totalCount.value.toLocaleString('id-ID'),
+    categoryLabel: 'Semua Berkas',
     color: 'rose',
     iconBg: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
   },
   {
-    title: 'Buku Referensi',
-    value: '486',
-    trend: '+8.5%',
-    isPositive: true,
+    title: 'Buku',
+    value: bukuCount.value.toLocaleString('id-ID'),
+    categoryLabel: 'Buku Literatur',
     color: 'cyan',
     iconBg: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
     icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
   },
   {
-    title: 'Jurnal & Artikel Ilmiah',
-    value: '642',
-    trend: '+12.1%',
-    isPositive: true,
+    title: 'Jurnal',
+    value: jurnalCount.value.toLocaleString('id-ID'),
+    categoryLabel: 'Jurnal Ilmiah',
     color: 'emerald',
     iconBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'
   },
   {
-    title: 'Total Akses & Unduhan',
-    value: '3,840',
-    trend: '+18.4%',
-    isPositive: true,
+    title: 'Skripsi',
+    value: skripsiCount.value.toLocaleString('id-ID'),
+    categoryLabel: 'Tugas Akhir',
     color: 'purple',
     iconBg: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'
+    icon: 'M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342'
   }
-]
+])
 
-// Data Arsip Dokumen Terbaru
-const recentArchives: ArchiveItem[] = [
-  {
-    title: 'Pedoman Kurikulum Merdeka Terintegrasi 2026/2027',
-    category: 'buku',
-    code: 'AC-BKO-2026-004',
-    date: '08 Mar 2026',
-    size: '3.4 MB',
-    type: 'PDF'
-  },
-  {
-    title: 'Transformasi Digital Manajemen Repositori Kampus',
-    category: 'jurnal',
-    code: 'AC-JRN-2026-018',
-    date: '05 Mar 2026',
-    size: '2.1 MB',
-    type: 'PDF'
-  },
-  {
-    title: 'Analisis Efektivitas Tata Kelola Kearsipan Elektronik',
-    category: 'artikel',
-    code: 'AC-ART-2026-009',
-    date: '01 Mar 2026',
-    size: '1.5 MB',
-    type: 'PDF'
-  },
-  {
-    title: 'Metodologi Penelitian Kearsipan Modern Edisi Revisi',
-    category: 'buku',
-    code: 'AC-BKO-2026-012',
-    date: '26 Feb 2026',
-    size: '5.2 MB',
-    type: 'PDF'
-  }
-]
-
-const activeCategoryFilter = ref('semua')
-
+// Dokumen yang difilter berdasarkan tab kategori
 const filteredDocuments = computed(() => {
-  if (activeCategoryFilter.value === 'semua') return recentArchives
-  return recentArchives.filter(item => item.category === activeCategoryFilter.value)
+  if (activeCategoryFilter.value === 'semua') {
+    return documents.value
+  }
+  return documents.value.filter(d => d.category?.toLowerCase() === activeCategoryFilter.value)
+})
+
+watch(user, () => {
+  fetchDashboardData()
+})
+
+onMounted(() => {
+  fetchDashboardData()
 })
 </script>
 
 <template>
   <div class="space-y-8">
-    <!-- Header Section (Meniru Gaya Template) -->
+    <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           Ringkasan Arsip Cendekia
         </h2>
         <p class="text-xs sm:text-sm text-slate-400 mt-1">
-          Pantau ketersediaan dokumen, statistik repositori, dan data kearsipan terkini.
+          Pantau ketersediaan dokumen dan data kearsipan terkini dari sistem.
         </p>
       </div>
 
-      <!-- Time Filter & Date Pill -->
-      <div class="flex flex-wrap items-center gap-2.5">
-        <div class="inline-flex rounded-xl bg-[#0d0f14] border border-slate-800 p-1">
-          <button
-            v-for="opt in timeOptions"
-            :key="opt.id"
-            type="button"
-            @click="selectedTime = opt.id"
-            :class="[
-              'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
-              selectedTime === opt.id
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            ]"
-          >
-            {{ opt.label }}
-          </button>
-        </div>
-
-        <div class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#0d0f14] border border-slate-800 text-xs text-slate-400">
-          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span>12 Jun 2026 – 10 Sep 2026</span>
-        </div>
-      </div>
+      <!-- Tombol Refresh Data -->
+      <button
+        type="button"
+        :disabled="isLoading"
+        @click="fetchDashboardData"
+        class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-[#0e1117] border border-slate-800 hover:border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer self-start sm:self-auto shadow-sm"
+        title="Perbarui data"
+      >
+        <svg
+          class="w-3.5 h-3.5 text-slate-400"
+          :class="{ 'animate-spin': isLoading }"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>{{ isLoading ? 'Memuat...' : 'Segarkan Data' }}</span>
+      </button>
     </div>
 
-    <!-- 4 Kartu Metrik (Tampilan Sesuai Template, Konten Sesuai Proyek) -->
+    <!-- Error Alert jika Gagal Mengambil Data -->
+    <div
+      v-if="error"
+      class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center justify-between"
+    >
+      <div class="flex items-center space-x-2">
+        <span>⚠️</span>
+        <span>{{ error }}</span>
+      </div>
+      <button
+        type="button"
+        class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-semibold"
+        @click="fetchDashboardData"
+      >
+        Coba Lagi
+      </button>
+    </div>
+
+    <!-- 4 Kartu Metrik dari Supabase -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div
         v-for="(card, idx) in metrics"
         :key="idx"
-        class="bg-[#0e1117] border border-slate-800/90 rounded-2xl p-5 relative overflow-hidden transition-all hover:border-slate-700"
+        class="bg-[#0e1117] border border-slate-800/90 rounded-2xl p-5 relative overflow-hidden transition-all hover:border-slate-700 shadow-sm"
       >
         <div class="flex items-center justify-between">
           <span class="text-xs font-medium text-slate-400">
@@ -162,30 +183,34 @@ const filteredDocuments = computed(() => {
           </div>
         </div>
 
-        <div class="mt-4">
-          <h3 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        <div class="mt-4 flex items-baseline justify-between">
+          <div v-if="isLoading" class="h-8 w-16 bg-slate-800/80 rounded animate-pulse" />
+          <h3 v-else class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             {{ card.value }}
           </h3>
+          <span class="text-[11px] text-slate-500 font-medium">
+            {{ card.categoryLabel }}
+          </span>
         </div>
       </div>
     </div>
 
-    <!-- Tabel Dokumen Terkini (Tanpa Chart/Grafik Sesuai Permintaan) -->
-    <div class="bg-[#0e1117] border border-slate-800/90 rounded-2xl p-5 sm:p-6 space-y-5">
+    <!-- Tabel Dokumen Terkini -->
+    <div class="bg-[#0e1117] border border-slate-800/90 rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
         <div>
           <h3 class="text-base font-bold text-white tracking-tight">
             Dokumen & Berkas Terkini
           </h3>
           <p class="text-xs text-slate-400">
-            Daftar penambahan arsip terbaru yang tersimpan dalam sistem
+            Daftar berkas arsip dokumen yang tersimpan di sistem Supabase
           </p>
         </div>
 
         <!-- Filter Kategori Tabs -->
         <div class="flex flex-wrap items-center gap-1.5">
           <button
-            v-for="cat in ['semua', 'buku', 'jurnal', 'artikel']"
+            v-for="cat in ['semua', 'buku', 'jurnal', 'skripsi']"
             :key="cat"
             type="button"
             @click="activeCategoryFilter = cat"
@@ -201,8 +226,54 @@ const filteredDocuments = computed(() => {
         </div>
       </div>
 
+      <!-- Loading Skeleton State -->
+      <div v-if="isLoading" class="py-8 space-y-3">
+        <div v-for="i in 4" :key="i" class="h-10 bg-slate-900/60 rounded-xl animate-pulse" />
+      </div>
+
+      <!-- Empty State -->
+      <div
+        v-else-if="filteredDocuments.length === 0"
+        class="py-12 flex flex-col items-center justify-center text-center space-y-3"
+      >
+        <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <p class="text-sm font-semibold text-white">Belum Ada Dokumen</p>
+          <p class="text-xs text-slate-400 max-w-sm">
+            {{ activeCategoryFilter === 'semua'
+              ? 'Belum ada berkas dokumen yang tersimpan di Supabase. Anda dapat mengunggah dokumen dari menu Buku, Jurnal, atau Skripsi.'
+              : `Belum ada dokumen untuk kategori ${activeCategoryFilter}.`
+            }}
+          </p>
+        </div>
+        <div class="pt-2 flex items-center space-x-2">
+          <NuxtLink
+            to="/buku"
+            class="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-colors"
+          >
+            Buka Buku
+          </NuxtLink>
+          <NuxtLink
+            to="/jurnal"
+            class="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 text-xs font-semibold transition-colors"
+          >
+            Buka Jurnal
+          </NuxtLink>
+          <NuxtLink
+            to="/skripsi"
+            class="px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 text-xs font-semibold transition-colors"
+          >
+            Buka Skripsi
+          </NuxtLink>
+        </div>
+      </div>
+
       <!-- Table Container -->
-      <div class="overflow-x-auto">
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-left text-xs">
           <thead>
             <tr class="text-slate-500 border-b border-slate-800/80 uppercase tracking-wider font-semibold">
@@ -210,43 +281,53 @@ const filteredDocuments = computed(() => {
               <th class="py-3 px-4">Kategori</th>
               <th class="py-3 px-4">Format</th>
               <th class="py-3 px-4">Ukuran</th>
-              <th class="py-3 px-4">Terakhir Diubah</th>
+              <th class="py-3 px-4">Tanggal Unggah</th>
               <th class="py-3 px-4 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/60 text-slate-300">
             <tr
-              v-for="(doc, idx) in filteredDocuments"
-              :key="idx"
+              v-for="doc in filteredDocuments"
+              :key="doc.id"
               class="hover:bg-slate-900/40 transition-colors"
             >
               <td class="py-3.5 px-4 font-medium text-white max-w-xs sm:max-w-md">
-                <div class="truncate">{{ doc.title }}</div>
-                <div class="text-[10px] text-slate-500 mt-0.5">{{ doc.code }}</div>
+                <div class="truncate text-slate-200 font-semibold">{{ doc.title }}</div>
+                <div class="text-[10px] text-slate-500 mt-0.5 truncate">
+                  {{ doc.author ? `${doc.author}${doc.year ? ` • ${doc.year}` : ''}` : (doc.file_name || '-') }}
+                </div>
               </td>
               <td class="py-3.5 px-4">
                 <span
                   :class="[
-                    'inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize',
-                    doc.category === 'buku' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : '',
-                    doc.category === 'jurnal' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : '',
-                    doc.category === 'artikel' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : ''
+                    'inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize border',
+                    doc.category?.toLowerCase() === 'buku' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : '',
+                    doc.category?.toLowerCase() === 'jurnal' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : '',
+                    doc.category?.toLowerCase() === 'skripsi' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : ''
                   ]"
                 >
-                  {{ doc.category }}
+                  {{ doc.category || 'Dokumen' }}
                 </span>
               </td>
               <td class="py-3.5 px-4">
                 <span class="px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 text-[10px] font-mono">
-                  {{ doc.type }}
+                  PDF
                 </span>
               </td>
-              <td class="py-3.5 px-4 text-slate-400">{{ doc.size }}</td>
-              <td class="py-3.5 px-4 text-slate-400">{{ doc.date }}</td>
+              <td class="py-3.5 px-4 text-slate-400 font-mono">{{ doc.file_size || '-' }}</td>
+              <td class="py-3.5 px-4 text-slate-400">{{ doc.uploaded_at || '-' }}</td>
               <td class="py-3.5 px-4 text-right">
                 <NuxtLink
-                  to="/literatur"
-                  class="inline-flex items-center space-x-1 text-rose-400 hover:text-rose-300 font-semibold"
+                  :to="{
+                    path: `/${(doc.category || 'buku').toLowerCase()}/read`,
+                    query: {
+                      id: doc.id,
+                      title: doc.title,
+                      file: doc.file_url,
+                      fileName: doc.file_name
+                    }
+                  }"
+                  class="inline-flex items-center space-x-1 text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
                 >
                   <span>Buka</span>
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
