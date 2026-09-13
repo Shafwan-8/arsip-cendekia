@@ -48,8 +48,8 @@ const fetchDashboardData = async () => {
       documents.value = data as DocumentItem[]
     }
   } catch (err: any) {
-    console.error('Gagal mengambil data dashboard dari Supabase:', err)
-    error.value = err?.message || 'Gagal memuat data arsip dari Supabase.'
+    console.error('Gagal mengambil data dashboard dari Database:', err)
+    error.value = err?.message || 'Gagal memuat data arsip dari Database.'
   } finally {
     isLoading.value = false
   }
@@ -246,7 +246,7 @@ onMounted(() => {
           <p class="text-sm font-semibold text-white">Belum Ada Dokumen</p>
           <p class="text-xs text-slate-400 max-w-sm">
             {{ activeCategoryFilter === 'semua'
-              ? 'Belum ada berkas dokumen yang tersimpan di Supabase. Anda dapat mengunggah dokumen dari menu Buku, Jurnal, atau Skripsi.'
+              ? 'Belum ada berkas dokumen yang tersimpan di Database. Anda dapat mengunggah dokumen dari menu Buku, Jurnal, atau Skripsi.'
               : `Belum ada dokumen untuk kategori ${activeCategoryFilter}.`
             }}
           </p>
