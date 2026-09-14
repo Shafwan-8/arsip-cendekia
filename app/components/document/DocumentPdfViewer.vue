@@ -1,18 +1,41 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { extractStoragePath } from '~/utils/document'
 import type { DocumentCategoryConfig } from '~/types/document'
+import type { DocumentChapter, ExtractionStatus } from '~/types/documentChapter'
+import PdfChapterSidebar from './pdf/PdfChapterSidebar.vue'
 
-const props = defineProps<{
-  fileUrl: string
-  fileName?: string
-  config?: DocumentCategoryConfig
-}>()
+const props = withDefaults(
+  defineProps<{
+    fileUrl: string
+    fileName?: string
+    config?: DocumentCategoryConfig
+    documentId?: string | number
+    chapters?: DocumentChapter[]
+    isExtracting?: boolean
+    isLoadingChapters?: boolean
+    extractionStatus?: ExtractionStatus
+    chaptersErrorMessage?: string
+  }>(),
+  {
+    fileName: '',
+    chapters: () => [],
+    isExtracting: false,
+    isLoadingChapters: false,
+    extractionStatus: 'pending',
+    chaptersErrorMessage: ''
+  }
+)
 
 const emit = defineEmits<{
   (e: 'loaded', totalPages: number): void
   (e: 'error', errorMsg: string): void
+  (e: 'retryExtract'): void
+  (e: 'pageChange', page: number): void
 }>()
+
+// State Sidebar BAB
+const isSidebarOpen = ref(true)
 
 // State Viewer
 const isLoading = ref(true)
@@ -216,12 +239,43 @@ const renderCurrentPage = async () => {
   }
 }
 
-// Navigasi Halaman
+// Navigasi Halaman & BAB
+const goToPage = async (pageNumber: number) => {
+  const p = Math.max(1, Math.min(totalPages.value || 9999, pageNumber))
+  if (p !== currentPage.value) {
+    currentPage.value = p
+    pageInput.value = String(p)
+    await renderCurrentPage()
+    emit('pageChange', p)
+  }
+}
+
+const goToChapter = async (chapter: DocumentChapter) => {
+  if (chapter && chapter.nomor_halaman) {
+    await goToPage(chapter.nomor_halaman)
+  }
+}
+
+// Menentukan BAB aktif berdasarkan nomor halaman saat ini
+const activeChapter = computed<DocumentChapter | null>(() => {
+  if (!props.chapters || props.chapters.length === 0) return null
+  const p = currentPage.value
+  for (let i = 0; i < props.chapters.length; i++) {
+    const cur = props.chapters[i]
+    const next = props.chapters[i + 1]
+    if (p >= cur.nomor_halaman && (!next || p < next.nomor_halaman)) {
+      return cur
+    }
+  }
+  return null
+})
+
 const prevPage = async () => {
   if (currentPage.value > 1) {
     currentPage.value--
     pageInput.value = String(currentPage.value)
     await renderCurrentPage()
+    emit('pageChange', currentPage.value)
   }
 }
 
@@ -230,6 +284,7 @@ const nextPage = async () => {
     currentPage.value++
     pageInput.value = String(currentPage.value)
     await renderCurrentPage()
+    emit('pageChange', currentPage.value)
   }
 }
 
@@ -238,6 +293,7 @@ const handlePageInput = async () => {
   if (!isNaN(p) && p >= 1 && p <= totalPages.value && p !== currentPage.value) {
     currentPage.value = p
     await renderCurrentPage()
+    emit('pageChange', p)
   } else {
     pageInput.value = String(currentPage.value)
   }
@@ -336,6 +392,16 @@ onBeforeUnmount(() => {
     } catch {}
   }
 })
+
+// Expose fungsi kontrol untuk komponen induk jika diperlukan
+defineExpose({
+  goToPage,
+  goToChapter,
+  currentPage,
+  totalPages,
+  activeChapter,
+  isSidebarOpen
+})
 </script>
 
 <template>
@@ -346,8 +412,38 @@ onBeforeUnmount(() => {
   >
     <!-- Floating Toolbar Reader -->
     <div class="sticky top-0 z-30 bg-[#0e121a]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
-      <!-- Navigasi Halaman -->
-      <div class="flex items-center space-x-1.5 bg-[#080a0f] border border-slate-800 rounded-xl px-2 py-1 shadow-inner">
+      <div class="flex items-center flex-wrap gap-2">
+        <!-- Tombol Toggle Sidebar BAB -->
+        <button
+          type="button"
+          class="px-3 py-1.5 rounded-xl border transition-all flex items-center space-x-1.5 text-xs font-semibold cursor-pointer shadow-sm"
+          :class="[
+            isSidebarOpen
+              ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
+              : 'bg-[#080a0f] border-slate-800 text-slate-300 hover:text-white hover:bg-slate-900'
+          ]"
+          :title="isSidebarOpen ? 'Sembunyikan Daftar BAB' : 'Tampilkan Daftar BAB'"
+          @click="isSidebarOpen = !isSidebarOpen"
+        >
+          <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+          <span class="hidden sm:inline">Daftar BAB</span>
+          <span
+            v-if="chapters && chapters.length > 0"
+            class="ml-1 px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono text-[10px] font-bold"
+          >
+            {{ chapters.length }}
+          </span>
+          <span
+            v-else-if="isExtracting"
+            class="w-2 h-2 rounded-full bg-blue-400 animate-ping ml-0.5"
+            title="Sedang menganalisis struktur PDF..."
+          />
+        </button>
+
+        <!-- Navigasi Halaman -->
+        <div class="flex items-center space-x-1.5 bg-[#080a0f] border border-slate-800 rounded-xl px-2 py-1 shadow-inner">
         <button
           type="button"
           class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-colors"
@@ -430,6 +526,7 @@ onBeforeUnmount(() => {
           Sesuaikan
         </button>
       </div>
+    </div>
 
       <!-- Action Tools: Copy Teks & Fullscreen -->
       <div class="flex items-center space-x-2">
@@ -484,69 +581,88 @@ onBeforeUnmount(() => {
       </div>
     </transition>
 
-    <!-- Main Viewport Area -->
-    <div
-      class="flex-1 overflow-auto p-4 sm:p-6 flex items-start justify-center min-h-[68vh] bg-[#07090d] select-auto"
-      tabindex="0"
-    >
-      <!-- State Loading -->
-      <div v-if="isLoading" class="my-auto py-16 flex flex-col items-center justify-center space-y-4 text-center">
-        <div class="relative w-14 h-14">
-          <div class="w-14 h-14 rounded-full border-4 border-slate-800 border-t-blue-500 animate-spin" />
-        </div>
-        <div class="space-y-1">
-          <p class="text-sm font-semibold text-white">Memuat Dokumen PDF...</p>
-          <p v-if="loadingProgress > 0" class="text-xs font-mono text-slate-400">
-            Mengunduh berkas: {{ loadingProgress }}%
-          </p>
-        </div>
-      </div>
+    <!-- Main Reader Layout: Sidebar BAB + Viewport PDF -->
+    <div class="flex-1 flex flex-row overflow-hidden relative min-h-[68vh]">
+      <!-- Sidebar Daftar BAB -->
+      <PdfChapterSidebar
+        :chapters="chapters"
+        :active-chapter="activeChapter"
+        :current-page="currentPage"
+        :is-open="isSidebarOpen"
+        :is-loading="isLoadingChapters"
+        :is-extracting="isExtracting"
+        :extraction-status="extractionStatus"
+        :error-message="chaptersErrorMessage"
+        :config="config"
+        @select-chapter="goToChapter"
+        @close="isSidebarOpen = false"
+        @retry="$emit('retryExtract')"
+      />
 
-      <!-- State Error -->
-      <div v-else-if="errorMessage" class="my-auto py-16 max-w-md text-center space-y-4 px-4">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shadow-lg">
-          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        </div>
-        <div class="space-y-1">
-          <h4 class="text-sm font-bold text-white">Gagal Membuka Berkas PDF</h4>
-          <p class="text-xs text-slate-400 leading-relaxed">{{ errorMessage }}</p>
-        </div>
-        <div class="flex items-center justify-center space-x-2 pt-2">
-          <button
-            type="button"
-            class="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-xs font-semibold text-slate-200 transition-colors"
-            @click="loadPdf"
-          >
-            Coba Lagi
-          </button>
-          <a
-            v-if="fileUrl"
-            :href="fileUrl"
-            target="_blank"
-            download
-            class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-colors"
-          >
-            Unduh Berkas Langsung
-          </a>
-        </div>
-      </div>
-
-      <!-- Page Canvas & TextLayer Container -->
+      <!-- Main Viewport Area -->
       <div
-        v-show="!isLoading && !errorMessage"
-        ref="pageContainerRef"
-        class="pdf-page-wrapper relative bg-white shadow-2xl transition-transform mx-auto rounded-sm overflow-hidden"
+        class="flex-1 overflow-auto p-4 sm:p-6 flex items-start justify-center bg-[#07090d] select-auto"
+        tabindex="0"
       >
-        <!-- Canvas untuk raster PDF -->
-        <canvas ref="canvasRef" class="block m-0 p-0" />
+        <!-- State Loading -->
+        <div v-if="isLoading" class="my-auto py-16 flex flex-col items-center justify-center space-y-4 text-center">
+          <div class="relative w-14 h-14">
+            <div class="w-14 h-14 rounded-full border-4 border-slate-800 border-t-blue-500 animate-spin" />
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm font-semibold text-white">Memuat Dokumen PDF...</p>
+            <p v-if="loadingProgress > 0" class="text-xs font-mono text-slate-400">
+              Mengunduh berkas: {{ loadingProgress }}%
+            </p>
+          </div>
+        </div>
 
-        <!-- TextLayer untuk seleksi mouse & Ctrl+C copy -->
+        <!-- State Error -->
+        <div v-else-if="errorMessage" class="my-auto py-16 max-w-md text-center space-y-4 px-4">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shadow-lg">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="space-y-1">
+            <h4 class="text-sm font-bold text-white">Gagal Membuka Berkas PDF</h4>
+            <p class="text-xs text-slate-400 leading-relaxed">{{ errorMessage }}</p>
+          </div>
+          <div class="flex items-center justify-center space-x-2 pt-2">
+            <button
+              type="button"
+              class="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-xs font-semibold text-slate-200 transition-colors"
+              @click="loadPdf"
+            >
+              Coba Lagi
+            </button>
+            <a
+              v-if="fileUrl"
+              :href="fileUrl"
+              target="_blank"
+              download
+              class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-colors"
+            >
+              Unduh Berkas Langsung
+            </a>
+          </div>
+        </div>
+
+        <!-- Page Canvas & TextLayer Container -->
         <div
-          ref="textLayerRef"
-          class="textLayer"
-        />
+          v-show="!isLoading && !errorMessage"
+          ref="pageContainerRef"
+          class="pdf-page-wrapper relative bg-white shadow-2xl transition-transform mx-auto rounded-sm overflow-hidden"
+        >
+          <!-- Canvas untuk raster PDF -->
+          <canvas ref="canvasRef" class="block m-0 p-0" />
+
+          <!-- TextLayer untuk seleksi mouse & Ctrl+C copy -->
+          <div
+            ref="textLayerRef"
+            class="textLayer"
+          />
+        </div>
       </div>
     </div>
 
@@ -554,6 +670,15 @@ onBeforeUnmount(() => {
     <div class="bg-[#0e121a] border-t border-slate-800/80 px-4 py-2 flex items-center justify-between text-[11px] text-slate-400">
       <div class="flex items-center space-x-2 truncate">
         <span class="font-mono font-medium text-slate-300">Hal {{ currentPage }} / {{ totalPages }}</span>
+        <template v-if="activeChapter">
+          <span class="text-slate-600">•</span>
+          <span class="text-blue-400 font-medium truncate max-w-[200px] sm:max-w-md">
+            {{ activeChapter.judul_bab }}
+          </span>
+        </template>
+      </div>
+      <div v-if="totalPages" class="text-slate-500 font-mono text-[10px]">
+        Skala: {{ Math.round(scale * 100) }}%
       </div>
     </div>
   </div>

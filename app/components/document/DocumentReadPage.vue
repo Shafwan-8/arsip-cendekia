@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { DocumentCategoryConfig, DocumentItem } from '~/types/document'
+import { useDocumentChapters } from '~/composables/document/useDocumentChapters'
 
 const props = defineProps<{
   config: DocumentCategoryConfig
@@ -22,12 +23,29 @@ const currentFileUrl = ref(initialFileUrl)
 const isLoadingMetadata = ref(false)
 const totalPagesCount = ref<number | null>(null)
 
+// Inisialisasi Composable Daftar BAB Otomatis
+const {
+  chapters,
+  extractionStatus,
+  isLoading: isLoadingChapters,
+  isExtracting,
+  errorMessage: chaptersErrorMessage,
+  fetchChapters,
+  extractChapters,
+  initChapters
+} = useDocumentChapters(docId)
+
 useHead({
   title: computed(() => `${currentTitle.value || props.config.label} - Pembaca PDF Arsip Cendekia`)
 })
 
 // Mengambil metadata lengkap dokumen dari Supabase jika fileUrl belum tersedia di query
 onMounted(async () => {
+  // Inisialisasi struktur BAB dari cache atau pemicu Adobe Extract API
+  if (docId) {
+    initChapters()
+  }
+
   if (!currentFileUrl.value && docId && client) {
     isLoadingMetadata.value = true
     try {
@@ -167,7 +185,14 @@ const downloadFile = async () => {
           :file-url="currentFileUrl"
           :file-name="currentFileName"
           :config="config"
+          :document-id="docId"
+          :chapters="chapters"
+          :is-extracting="isExtracting"
+          :is-loading-chapters="isLoadingChapters"
+          :extraction-status="extractionStatus"
+          :chapters-error-message="chaptersErrorMessage"
           @loaded="handlePdfLoaded"
+          @retry-extract="() => extractChapters(true)"
         />
       </div>
 

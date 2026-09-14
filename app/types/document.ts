@@ -12,6 +12,10 @@ export interface DocumentItem {
   uploaded_at: string
   status: string
   user_id?: string
+  extraction_status?: 'pending' | 'processing' | 'completed' | 'failed'
+  extraction_error?: string | null
+  extraction_started_at?: string | null
+  extraction_completed_at?: string | null
 }
 
 export type BukuItem = DocumentItem

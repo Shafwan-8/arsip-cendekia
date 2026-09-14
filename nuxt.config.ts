@@ -6,6 +6,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     supabaseSecretKey: process.env.SUPABASE_SECRET_KEY,
+    adobeClientId: process.env.ADOBE_CLIENT_ID,
+    adobeClientSecret: process.env.ADOBE_CLIENT_SECRET,
     public: {
       openalexApiKey: process.env.OPENALEX_API_KEY,
       supabaseUrl: process.env.SUPABASE_URL,

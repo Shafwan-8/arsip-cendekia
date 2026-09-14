@@ -10,8 +10,11 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@adobe/pdfservices-node-sdk": "^4.1.0",
     "@supabase/server": "^1.6.0",
     "@supabase/supabase-js": "^2.116.0",
+    "@types/adm-zip": "^0.5.8",
+    "adm-zip": "^0.6.1",
     "axios": "^1.20.0",
     "nuxt": "^4.5.2",
     "pdf-lib": "^1.17.1",
