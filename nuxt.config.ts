@@ -2,9 +2,10 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
+    geminiApiKey: process.env.GEMINI_API_KEY,
     supabaseSecretKey: process.env.SUPABASE_SECRET_KEY,
     adobeClientId: process.env.ADOBE_CLIENT_ID,
     adobeClientSecret: process.env.ADOBE_CLIENT_SECRET,

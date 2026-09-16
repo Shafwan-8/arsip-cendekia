@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
+import { useChatSearchStore } from '~/stores/chatSearch'
 
 defineEmits<{
   (e: 'toggle-mobile'): void
@@ -8,6 +9,7 @@ defineEmits<{
 
 const route = useRoute()
 const { user, signOut } = useSupabase()
+const chatStore = useChatSearchStore()
 
 const isDropdownOpen = ref(false)
 const dropdownRef = ref<HTMLDivElement | null>(null)
@@ -81,19 +83,32 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Right: User Avatar & Logout Dropdown -->
-    <div ref="dropdownRef" class="relative">
+    <!-- Right: Search With AI & User Avatar -->
+    <div class="flex items-center space-x-3 sm:space-x-4">
+      <!-- Search With AI Button (Sesuai Konsep Visual) -->
       <button
         type="button"
-        @click.stop="toggleDropdown"
-        class="flex items-center space-x-2 p-0.5 rounded-full hover:ring-2 hover:ring-slate-700 transition-all cursor-pointer focus:outline-none"
-        aria-label="Menu Pengguna"
-        :aria-expanded="isDropdownOpen"
+        @click="chatStore.toggle"
+        class="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-[#141720] hover:bg-[#1b202c] border border-slate-700/80 hover:border-rose-500/60 shadow-sm hover:shadow-rose-950/20 transition-all duration-200 cursor-pointer focus:outline-none"
+        aria-label="Cari Literatur dengan AI"
       >
-        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500/20 to-rose-400/30 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center shadow-sm">
-          {{ userInitials }}
-        </div>
+        <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+        <span>Search With AI</span>
       </button>
+
+      <!-- User Avatar & Logout Dropdown -->
+      <div ref="dropdownRef" class="relative">
+        <button
+          type="button"
+          @click.stop="toggleDropdown"
+          class="flex items-center space-x-2 p-0.5 rounded-full hover:ring-2 hover:ring-slate-700 transition-all cursor-pointer focus:outline-none"
+          aria-label="Menu Pengguna"
+          :aria-expanded="isDropdownOpen"
+        >
+          <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500/20 to-rose-400/30 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center justify-center shadow-sm">
+            {{ userInitials }}
+          </div>
+        </button>
 
       <!-- Dropdown Menu -->
       <transition
@@ -134,5 +149,6 @@ onBeforeUnmount(() => {
         </div>
       </transition>
     </div>
+  </div>
   </header>
 </template>

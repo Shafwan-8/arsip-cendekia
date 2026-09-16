@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@adobe/pdfservices-node-sdk": "^4.1.0",
+    "@google/genai": "^2.22.0",
+    "@pinia/nuxt": "^1.0.2",
     "@supabase/server": "^1.6.0",
     "@supabase/supabase-js": "^2.116.0",
     "@types/adm-zip": "^0.5.8",
@@ -19,6 +21,7 @@
     "nuxt": "^4.5.2",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
+    "pinia": "^4.0.3",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"
   },
