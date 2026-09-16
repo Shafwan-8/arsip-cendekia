@@ -49,7 +49,7 @@ const chatStore = useChatSearchStore()
       <button
         type="button"
         @click="chatStore.close"
-        class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-rose-500/10 hover:text-rose-400 transition-colors focus:outline-none"
+        class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-rose-500/10 transition-colors focus:outline-none"
         aria-label="Tutup Panel AI"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
