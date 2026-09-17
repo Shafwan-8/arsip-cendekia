@@ -12,6 +12,7 @@
   "dependencies": {
     "@adobe/pdfservices-node-sdk": "^4.1.0",
     "@google/genai": "^2.22.0",
+    "@nuxtjs/supabase": "^2.0.10",
     "@pinia/nuxt": "^1.0.2",
     "@supabase/server": "^1.6.0",
     "@supabase/supabase-js": "^2.116.0",

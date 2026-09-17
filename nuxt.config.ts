@@ -2,7 +2,31 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
+  modules: [
+    '@nuxtjs/tailwindcss',
+    '@pinia/nuxt',
+    '@nuxtjs/supabase'
+  ],
+  supabase: {
+    url: process.env.SUPABASE_URL,
+    key: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_KEY,
+    // Nonaktifkan redirect otomatis bawaan jika Anda menggunakan custom middleware auth
+    redirect: false,
+    // Konfigurasi Cookie untuk menyimpan token JWT (Access & Refresh Token)
+    cookieOptions: {
+      maxAge: 60 * 60 * 24 * 7, // Cookie aktif selama 7 hari
+      sameSite: 'lax',           // Mencegah pemblokiran navigasi antar-halaman di Chrome
+      secure: process.env.NODE_ENV === 'production', // Wajib HTTPS di Vercel (Production), namun fleksibel di localhost (HTTP)
+    },
+    clientOptions: {
+      auth: {
+        flowType: 'pkce',
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true
+      }
+    }
+  },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     geminiApiKey: process.env.GEMINI_API_KEY,
