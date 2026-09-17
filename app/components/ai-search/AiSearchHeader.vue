@@ -24,7 +24,7 @@ const store = useAiSearchStore()
           </span>
         </div>
         <p class="text-[11px] text-slate-400 hidden sm:block">
-          Explore academic literature with AI & RAG synthesis
+          Explore academic literature with AI
         </p>
       </div>
     </div>

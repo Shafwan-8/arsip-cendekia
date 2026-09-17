@@ -35,15 +35,15 @@ const handleLogin = async () => {
     await signInWithEmail(cleanEmail, cleanPassword)
     
     // Redirect ke Beranda/Dashboard setelah berhasil
-    await navigateTo('/')
+    await navigateTo('/', { replace: true })
   } catch (err: any) {
     console.error('Supabase Login Error:', err)
     const rawMsg = err?.message || ''
     
     if (rawMsg.toLowerCase().includes('invalid login credentials')) {
-      errorMessage.value = 'Email atau kata sandi tidak valid. Pastikan akun telah terdaftar di Supabase.'
+      errorMessage.value = 'Email atau kata sandi tidak valid. Pastikan akun telah terdaftar di Database.'
     } else if (rawMsg.toLowerCase().includes('email not confirmed')) {
-      errorMessage.value = 'Email belum dikonfirmasi. Silakan periksa kotak masuk atau aktifkan Auto-Confirm di Supabase.'
+      errorMessage.value = 'Email belum dikonfirmasi. Silakan periksa kotak masuk atau aktifkan Auto-Confirm di Database.'
     } else {
       errorMessage.value = rawMsg || 'Gagal masuk. Periksa kembali koneksi dan akun Anda.'
     }

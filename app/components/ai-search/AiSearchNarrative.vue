@@ -131,7 +131,7 @@ watch(
 
       <!-- 2. Respon Asisten AI -->
       <div
-        v-else-if="msg.role === 'assistant'"
+        v-else-if="msg.role === 'assistant' && msg.content && msg.content.trim()"
         :data-message-id="msg.id"
         class="flex flex-col space-y-3.5 bg-[#141822]/80 border border-slate-800/90 rounded-2xl p-4 sm:p-5 shadow-sm"
       >

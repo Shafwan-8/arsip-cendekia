@@ -72,14 +72,20 @@ export const useAiSearchStore = defineStore('aiSearch', () => {
   }
 
   function finishSearch() {
+    // Cegah duplikasi jika sudah tidak streaming dan respon sudah dipindahkan
+    if (!isStreaming.value && !currentResponse.value.trim()) {
+      return
+    }
+
     isStreaming.value = false
 
-    // Simpan pesan asisten ke histori
-    if (currentResponse.value.trim() || currentReferences.value.length > 0) {
+    // Simpan pesan asisten ke histori HANYA jika memiliki konten teks
+    const finalContent = currentResponse.value.trim()
+    if (finalContent) {
       chatHistory.value.push({
         id: `asst-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         role: 'assistant',
-        content: currentResponse.value,
+        content: finalContent,
         references: [...currentReferences.value],
         createdAt: Date.now()
       })
@@ -91,11 +97,12 @@ export const useAiSearchStore = defineStore('aiSearch', () => {
     error.value = err
     isStreaming.value = false
     // Jika ada respon parsial sebelum error, simpan juga ke history
-    if (currentResponse.value.trim()) {
+    const finalContent = currentResponse.value.trim()
+    if (finalContent) {
       chatHistory.value.push({
         id: `asst-err-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         role: 'assistant',
-        content: currentResponse.value,
+        content: finalContent,
         references: [...currentReferences.value],
         createdAt: Date.now()
       })

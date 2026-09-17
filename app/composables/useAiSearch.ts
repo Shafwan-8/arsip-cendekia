@@ -100,8 +100,10 @@ export function useAiSearch() {
         }
       }
 
-      // Pastikan status streaming selesai setelah stream ditutup
-      store.finishSearch()
+      // Pastikan status streaming selesai setelah stream ditutup jika belum di-finish
+      if (store.isStreaming) {
+        store.finishSearch()
+      }
     } catch (err: any) {
       if (err?.name === 'AbortError') {
         return
