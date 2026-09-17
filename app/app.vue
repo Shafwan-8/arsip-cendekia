@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import ChatOverlay from '~/components/chat/ChatOverlay.vue'
+import AiSearchOverlay from '~/components/ai-search/AiSearchOverlay.vue'
 
 const route = useRoute()
 const isMobileOpen = ref(false)
@@ -38,7 +38,7 @@ const isAuthPage = computed(() => route.path.startsWith('/auth'))
       </div>
     </div>
 
-    <!-- Global AI Search Chat Overlay (Sesuai Konsep) -->
-    <ChatOverlay />
+    <!-- Global AI Literature Research Assistant Overlay -->
+    <AiSearchOverlay />
   </div>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
-import { useChatSearchStore } from '~/stores/chatSearch'
+import { useAiSearchStore } from '~/stores/useAiSearchStore'
 
 defineEmits<{
   (e: 'toggle-mobile'): void
@@ -9,7 +9,7 @@ defineEmits<{
 
 const route = useRoute()
 const { user, signOut } = useSupabase()
-const chatStore = useChatSearchStore()
+const aiSearchStore = useAiSearchStore()
 
 const isDropdownOpen = ref(false)
 const dropdownRef = ref<HTMLDivElement | null>(null)
@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
       <!-- Search With AI Button (Sesuai Konsep Visual) -->
       <button
         type="button"
-        @click="chatStore.toggle"
+        @click="aiSearchStore.toggle"
         class="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-[#141720] hover:bg-[#1b202c] border border-slate-700/80 hover:border-rose-500/60 shadow-sm hover:shadow-rose-950/20 transition-all duration-200 cursor-pointer focus:outline-none"
         aria-label="Cari Literatur dengan AI"
       >
