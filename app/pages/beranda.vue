@@ -280,7 +280,7 @@ onMounted(() => {
             <tr class="text-slate-500 border-b border-slate-800/80 uppercase tracking-wider font-semibold">
               <th class="py-3 px-4">Judul Dokumen</th>
               <th class="py-3 px-4">Kategori</th>
-              <th class="py-3 px-4">Format</th>
+              <th class="py-3 px-4">Sumber</th>
               <th class="py-3 px-4">Ukuran</th>
               <th class="py-3 px-4">Tanggal Unggah</th>
               <th class="py-3 px-4 text-right">Aksi</th>
@@ -311,8 +311,19 @@ onMounted(() => {
                 </span>
               </td>
               <td class="py-3.5 px-4">
-                <span class="px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 text-[10px] font-mono">
-                  PDF
+                <span
+                  v-if="doc.source === 'ai_generated'"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/25"
+                  title="Dihasilkan oleh AI"
+                >
+                  AI
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/80"
+                  title="Diunggah secara manual"
+                >
+                  Upload
                 </span>
               </td>
               <td class="py-3.5 px-4 text-slate-400 font-mono">{{ doc.file_size || '-' }}</td>
