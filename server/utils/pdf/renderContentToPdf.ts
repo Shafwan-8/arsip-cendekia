@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer'
 import { marked } from 'marked'
 import type { DocumentContentBlock } from '~/types/documentContentBlock'
 
@@ -357,18 +356,45 @@ function buildFullDocumentHtml(blocks: DocumentContentBlock[], meta: RenderPdfMe
 }
 
 /**
- * Menghasilkan PDF Buffer dari array DocumentContentBlock menggunakan Puppeteer
+ * Menghasilkan PDF Buffer dari array DocumentContentBlock.
+ * Menggunakan puppeteer-core + @sparticuz/chromium-min di production (Vercel),
+ * dan fallback ke `puppeteer` penuh (Chrome bundled) saat development lokal.
  */
 export async function renderDocumentToPdf(
   blocks: DocumentContentBlock[],
   meta: RenderPdfMeta
 ): Promise<Buffer> {
   const html = buildFullDocumentHtml(blocks, meta)
+  const isProd = !!process.env.VERCEL || process.env.NODE_ENV === 'production'
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  })
+  let browser: any
+
+  if (isProd) {
+    const [{ default: puppeteer }, { default: chromium }] = await Promise.all([
+      import('puppeteer-core'),
+      import('@sparticuz/chromium-min')
+    ])
+
+    // URL rilis binary Chromium yang dikompres, di-host GitHub release Sparticuz/chromium.
+    // Disesuaikan dengan versi package @sparticuz/chromium-min yang terinstall (v153.0.0).
+    const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
+    const CHROMIUM_PACK_URL =
+      process.env.CHROMIUM_REMOTE_EXEC_PATH ||
+      `https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.${arch}.tar`
+
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(CHROMIUM_PACK_URL),
+      headless: true
+    })
+  } else {
+    const { default: puppeteerFull } = await import('puppeteer')
+    browser = await puppeteerFull.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    })
+  }
 
   try {
     const page = await browser.newPage()
@@ -390,3 +416,4 @@ export async function renderDocumentToPdf(
     await browser.close()
   }
 }
+

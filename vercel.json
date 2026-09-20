@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/render-document-pdf.post.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
+}
