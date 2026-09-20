@@ -31,6 +31,7 @@ defineEmits<{
           <th class="py-3.5 px-4">Informasi Dokumen</th>
           <th class="py-3.5 px-4">Tahun & Halaman</th>
           <th class="py-3.5 px-4">Berkas PDF</th>
+          <th class="py-3.5 px-4 text-center">Sumber</th>
           <th class="py-3.5 px-4">Tanggal Unggah</th>
           <th class="py-3.5 px-4 text-center w-24">Aksi</th>
         </tr>
@@ -38,7 +39,7 @@ defineEmits<{
       <tbody class="divide-y divide-slate-800/60 text-slate-300">
         <!-- Loading State -->
         <tr v-if="isLoading && totalRawDocuments === 0">
-          <td colspan="6" class="py-12 text-center">
+          <td colspan="7" class="py-12 text-center">
             <div class="flex flex-col items-center justify-center space-y-2">
               <svg class="animate-spin h-6 w-6" :class="theme.primaryText" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -51,7 +52,7 @@ defineEmits<{
 
         <!-- Empty State -->
         <tr v-else-if="totalFilteredDocuments === 0">
-          <td colspan="6" class="py-12 text-center">
+          <td colspan="7" class="py-12 text-center">
             <DocumentEmptyState
               :title="emptyTitle"
               :description="emptyDescription"

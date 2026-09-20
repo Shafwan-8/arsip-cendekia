@@ -161,6 +161,7 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
         file_size: uploadForm.value.file_size,
         file_url: filePublicUrl,
         status: uploadForm.value.status,
+        source: 'upload',
         uploaded_at: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
       }
 

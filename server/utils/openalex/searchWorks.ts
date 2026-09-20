@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { LiteratureReference } from '~/types/aiSearch'
+import type { LiteratureReference } from '~/types/literatureReference'
 import { normalizeWork, type RawOpenAlexWork } from './normalizeWork'
 
 export interface SearchWorksOptions {

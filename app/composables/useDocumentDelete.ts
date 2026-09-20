@@ -50,7 +50,20 @@ export const useDocumentDelete = (options: UseDocumentDeleteOptions) => {
         }
       }
 
-      // 2. Hapus data record dari tabel "documents"
+      // 2. Pertahanan tambahan (defense-in-depth): Hapus relasi di document_content_blocks & document_chapters
+      try {
+        await client.from('document_content_blocks').delete().eq('document_id', docToDelete.id)
+      } catch (relErr) {
+        console.warn('Peringatan saat membersihkan document_content_blocks:', relErr)
+      }
+
+      try {
+        await client.from('document_chapters').delete().eq('document_id', docToDelete.id)
+      } catch (relErr) {
+        console.warn('Peringatan saat membersihkan document_chapters:', relErr)
+      }
+
+      // 3. Hapus data record dari tabel "documents"
       let deleteQuery = client
         .from('documents')
         .delete()

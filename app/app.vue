@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import AiSearchOverlay from '~/components/ai-search/AiSearchOverlay.vue'
 
 const route = useRoute()
 const isMobileOpen = ref(false)
@@ -37,8 +36,5 @@ const isAuthPage = computed(() => route.path.startsWith('/auth'))
         </main>
       </div>
     </div>
-
-    <!-- Global AI Literature Research Assistant Overlay -->
-    <AiSearchOverlay />
   </div>
 </template>

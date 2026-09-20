@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAiSearchStore } from '~/stores/useAiSearchStore'
 
 defineEmits<{
   (e: 'toggle-mobile'): void
@@ -9,7 +8,6 @@ defineEmits<{
 
 const route = useRoute()
 const { user, signOut } = useSupabase()
-const aiSearchStore = useAiSearchStore()
 
 const isDropdownOpen = ref(false)
 const dropdownRef = ref<HTMLDivElement | null>(null)
@@ -27,6 +25,7 @@ const userEmail = computed(() => {
 const pageTitle = () => {
   if (route.path === '/literatur') return 'Pencarian Literatur'
   if (route.path === '/arsip-literatur') return 'Literatur & Arsip'
+  if (route.path === '/buat-literatur') return 'Buat Literatur'
   if (route.path === '/buku' || route.path === '/buku/read' || route.path === '/buku/edit') return 'Buku'
   if (route.path === '/jurnal' || route.path === '/jurnal/read' || route.path === '/jurnal/edit') return 'Jurnal'
   if (route.path === '/skripsi' || route.path === '/skripsi/read' || route.path === '/skripsi/edit') return 'Skripsi'
@@ -83,18 +82,8 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Right: Search With AI & User Avatar -->
+    <!-- Right: User Avatar -->
     <div class="flex items-center space-x-3 sm:space-x-4">
-      <!-- Search With AI Button (Sesuai Konsep Visual) -->
-      <button
-        type="button"
-        @click="aiSearchStore.toggle"
-        class="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-[#141720] hover:bg-[#1b202c] border border-slate-700/80 hover:border-rose-500/60 shadow-sm hover:shadow-rose-950/20 transition-all duration-200 cursor-pointer focus:outline-none"
-        aria-label="Cari Literatur dengan AI"
-      >
-        <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-        <span>Search With AI</span>
-      </button>
 
       <!-- User Avatar & Logout Dropdown -->
       <div ref="dropdownRef" class="relative">

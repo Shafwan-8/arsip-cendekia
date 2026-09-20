@@ -1,18 +1,19 @@
 import { getGeminiClient, getGeminiFallbackModels } from './geminiClient'
 
-export interface StreamResearchAnswerOptions {
+export interface StreamGeminiContentOptions {
   apiKey?: string
   systemInstruction: string
   contents: string
   signal?: AbortSignal
+  temperature?: number
 }
 
 /**
- * Melakukan streaming narasi sintesis riset dari Gemini sebagai Async Generator
+ * Melakukan streaming konten AI dari Gemini sebagai Async Generator
  * Dilengkapi dengan fallback otomatis ke model lain jika terjadi 503 (high demand)
  */
-export async function* streamResearchAnswer(
-  options: StreamResearchAnswerOptions
+export async function* streamGeminiContent(
+  options: StreamGeminiContentOptions
 ): AsyncGenerator<string, void, unknown> {
   const ai = getGeminiClient(options.apiKey)
   const models = getGeminiFallbackModels()
@@ -28,7 +29,7 @@ export async function* streamResearchAnswer(
         contents: options.contents,
         config: {
           systemInstruction: options.systemInstruction,
-          temperature: 0.2
+          temperature: options.temperature ?? 0.3
         }
       })
 
@@ -49,7 +50,7 @@ export async function* streamResearchAnswer(
     } catch (err: any) {
       lastError = err
       const status = err?.status || err?.code
-      console.warn(`[streamResearchAnswer] Model ${model} gagal (${status}). Mencoba model cadangan jika ada...`)
+      console.warn(`[streamGeminiContent] Model ${model} gagal (${status}). Mencoba model cadangan jika ada...`)
       // Lanjut ke model berikutnya
     }
   }

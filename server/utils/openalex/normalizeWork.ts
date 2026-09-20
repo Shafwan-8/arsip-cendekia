@@ -1,4 +1,4 @@
-import type { LiteratureReference } from '~/types/aiSearch'
+import type { LiteratureReference } from '~/types/literatureReference'
 import { reconstructAbstract } from './reconstructAbstract'
 
 export interface RawOpenAlexWork {

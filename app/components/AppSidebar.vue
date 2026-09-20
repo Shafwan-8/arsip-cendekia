@@ -26,6 +26,7 @@ const userInitials = computed(() => {
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/' || route.path === '/beranda'
   if (path === '/literatur') return route.path === '/literatur'
+  if (path === '/buat-literatur') return route.path === '/buat-literatur'
   if (path === '/buku') return route.path === '/buku'
   if (path === '/jurnal') return route.path === '/jurnal'
   if (path === '/skripsi') return route.path === '/skripsi'
@@ -42,6 +43,11 @@ const navItems = [
     label: 'Pencarian Literatur',
     path: '/literatur',
     icon: 'm21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z'
+  },
+  {
+    label: 'Buat Literatur',
+    path: '/buat-literatur',
+    icon: 'M13 10V3L4 14h7v7l9-11h-7z'
   }
 ]
 

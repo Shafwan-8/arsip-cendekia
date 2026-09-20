@@ -1,4 +1,4 @@
-import type { LiteratureReference } from '~/types/aiSearch'
+import type { LiteratureReference } from '~/types/literatureReference'
 import { truncateWords } from '../text/truncateText'
 
 /**

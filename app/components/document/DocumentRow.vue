@@ -81,6 +81,24 @@ defineEmits<{
       </div>
     </td>
 
+    <!-- Sumber Dokumen (Upload vs AI Generate) -->
+    <td class="py-4 px-4 whitespace-nowrap text-center">
+      <span
+        v-if="document.source === 'ai_generated'"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/25 shadow-sm"
+        title="Dihasilkan oleh AI Literature Generator"
+      >
+        AI
+      </span>
+      <span
+        v-else
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/80 shadow-sm"
+        title="Diunggah secara manual"
+      >
+        Upload
+      </span>
+    </td>
+
     <!-- Waktu Upload -->
     <td class="py-4 px-4 text-slate-400 whitespace-nowrap text-[11px]">
       {{ formatUploadDate(document.uploaded_at) }}

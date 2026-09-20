@@ -16,6 +16,13 @@ export interface DocumentItem {
   extraction_error?: string | null
   extraction_started_at?: string | null
   extraction_completed_at?: string | null
+  source?: 'upload' | 'ai_generated'
+  ai_generation_status?: 'pending' | 'generating' | 'completed' | 'failed'
+  ai_generation_error?: string | null
+  ai_generation_started_at?: string | null
+  ai_generation_completed_at?: string | null
+  pdf_cache_url?: string | null
+  pdf_cache_stale?: boolean
 }
 
 export type BukuItem = DocumentItem

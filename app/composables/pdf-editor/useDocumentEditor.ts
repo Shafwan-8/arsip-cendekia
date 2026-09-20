@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { extractStoragePath, documentCategoryConfig } from '~/utils/document'
 import type { DocumentItem, DocumentCategoryConfig } from '~/types/document'
@@ -76,6 +76,21 @@ export const useDocumentEditor = (options: UseDocumentEditorOptions) => {
               path: `/${resolvedCategory}/edit`,
               query: { id: docId }
             })
+          }
+
+          // Jika dokumen merupakan hasil AI generation, lewati seluruh proses fetch pdfBytes
+          if (item.source === 'ai_generated') {
+            document.value = {
+              id: docId,
+              title: docTitleResolved || 'Dokumen AI',
+              author: resolvedAuthor,
+              fileName: fileNameResolved || 'dokumen.pdf',
+              fileUrl: fileUrlToFetch || '',
+              category: resolvedCategory,
+              pages: resolvedPages,
+              source: 'ai_generated'
+            }
+            isLoading.value = false
             return
           }
         }
@@ -92,7 +107,8 @@ export const useDocumentEditor = (options: UseDocumentEditorOptions) => {
         fileName: fileNameResolved || 'dokumen.pdf',
         fileUrl: fileUrlToFetch,
         category: resolvedCategory,
-        pages: resolvedPages
+        pages: resolvedPages,
+        source: 'upload'
       }
 
       // 2. Ambil raw bytes PDF (ArrayBuffer) untuk manipulasi pdf-lib & rendering pdf.js
@@ -147,6 +163,7 @@ export const useDocumentEditor = (options: UseDocumentEditorOptions) => {
     isLoading,
     error,
     categoryConfig,
+    source: computed(() => document.value?.source),
     reload: loadDocumentData
   }
 }

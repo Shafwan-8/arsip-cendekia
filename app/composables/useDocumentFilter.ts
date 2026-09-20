@@ -15,7 +15,9 @@ export const useDocumentFilter = (documents: Ref<DocumentItem[]>) => {
           (doc.title || '').toLowerCase().includes(q) ||
           (doc.author || '').toLowerCase().includes(q) ||
           (doc.publisher || '').toLowerCase().includes(q) ||
-          (doc.file_name || '').toLowerCase().includes(q)
+          (doc.file_name || '').toLowerCase().includes(q) ||
+          (doc.source || '').toLowerCase().includes(q) ||
+          (doc.source === 'ai_generated' && ('ai generate'.includes(q) || 'ai'.includes(q)))
         )
       })
       .sort((a, b) => {
