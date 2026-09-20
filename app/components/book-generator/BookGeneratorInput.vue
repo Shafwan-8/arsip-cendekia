@@ -49,7 +49,7 @@ const handleSubmit = () => {
     <!-- Header Hero -->
     <div class="text-center space-y-3">
       <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-        Buat Karya Ilmiah / Buku Lengkap
+        Buat Karya Ilmiah Buku / Jurnal / Skripsi
       </h1>
       <p class="text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
         Ketikkan topik atau judul yang Anda inginkan. AI akan menyusun Daftar Isi, menulis pembahasan setiap bab secara mendalam, merumuskan kesimpulan, dan melakukan grounding Daftar Pustaka dari OpenAlex.
