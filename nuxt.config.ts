@@ -60,6 +60,12 @@ export default defineNuxtConfig({
   nitro: {
     externals: {
       inline: ['@sparticuz/chromium-min']
+    },
+    vercel: {
+      functions: {
+        memory: 1024,
+        maxDuration: 60
+      }
     }
   }
 })
