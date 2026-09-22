@@ -31,4 +31,5 @@ export interface OpenAlexWork {
     oa_url?: string
   }
   cited_by_count?: number
+  best_oa_location?: OpenAlexLocation
 }
