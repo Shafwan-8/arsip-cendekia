@@ -26,7 +26,7 @@ export function buildOutlinePrompt(
       ? 'Buat 4 sampai 5 bagian utama (contoh: Pendahuluan, Tinjauan Pustaka, Metodologi Penelitian, Hasil dan Pembahasan).'
       : kategori === 'skripsi'
         ? 'Buat 5 bab standar skripsi (Bab I Pendahuluan, Bab II Tinjauan Pustaka, Bab III Metode Penelitian, Bab IV Hasil dan Pembahasan, Bab V Penutup).'
-        : 'Buat 5 sampai 7 bab berurutan yang komprehensif, mencakup pengantar fundamental hingga aplikasi dan analisis mendalam.'
+        : 'Buat 4 sampai 5 bab utama yang berurutan, padat, dan komprehensif.'
 
   const systemInstruction = `Anda adalah seorang akademisi, penulis buku, dan editor literatur ilmiah profesional tingkat tinggi.
 Tugas Anda adalah merancang struktur Daftar Isi (Outline Bab) yang logis, koheren, mendalam, dan bernilai ilmiah tinggi untuk karya bertema "${kategoriLabel}".
@@ -34,7 +34,7 @@ Tugas Anda adalah merancang struktur Daftar Isi (Outline Bab) yang logis, kohere
 ATURAN UTAMA:
 1. Susun daftar judul bab yang jelas, akademis, dan informatif.
 2. Jangan menyertakan kata "Daftar Isi", "Kesimpulan", atau "Daftar Pustaka" ke dalam array bab, karena bagian-bagian tersebut akan dibuat dan dikelola secara terpisah oleh sistem.
-3. ${chapterCountGuideline}
+3. ${chapterCountGuideline} PENTING: Batasi jumlah bab tepat 4 sampai 5 bab saja (tidak boleh lebih dari 5 bab) agar pembahasan fokus dan terstruktur.
 4. Setiap judul bab harus berbobot akademis dalam Bahasa Indonesia yang baku dan elegan.`
 
   const contents = `Judul Karya: "${judul}"

@@ -1,4 +1,4 @@
-import { getGeminiClient, getGeminiFallbackModels } from './geminiClient'
+import { getGeminiClient, getGeminiFallbackModels, setGeminiWorkingModel } from './geminiClient'
 
 export interface StreamGeminiContentOptions {
   apiKey?: string
@@ -43,8 +43,9 @@ export async function* streamGeminiContent(
         }
       }
 
-      // Jika berhasil streaming sampai selesai, return sukses
+      // Jika berhasil streaming sampai selesai, return sukses dan cache model yang bekerja
       if (yieldedAny) {
+        setGeminiWorkingModel(model)
         return
       }
     } catch (err: any) {

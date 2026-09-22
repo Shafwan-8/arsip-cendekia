@@ -40,7 +40,58 @@ export function useBookGenerator() {
   }
 
   /**
-   * Memulai proses generate buku/literatur melalui endpoint SSE
+   * Helper membaca SSE stream dan mengekstrak token secara real-time
+   */
+  const readSseStream = async (
+    response: Response,
+    onToken: (text: string) => void,
+    onDone?: (data: any) => void
+  ) => {
+    if (!response.body) return
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const events = buffer.split('\n\n')
+      buffer = events.pop() || ''
+
+      for (const evt of events) {
+        if (!evt.trim()) continue
+        let eventType = 'message'
+        let eventData = ''
+        const lines = evt.split('\n')
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            eventType = line.replace('event:', '').trim()
+          } else if (line.startsWith('data:')) {
+            eventData = line.replace('data:', '').trim()
+          }
+        }
+        if (!eventData) continue
+        try {
+          const parsed = JSON.parse(eventData)
+          if (eventType === 'token' && parsed.text) {
+            onToken(parsed.text)
+          } else if (eventType === 'done') {
+            if (onDone) onDone(parsed)
+          } else if (eventType === 'error') {
+            throw new Error(parsed.message || 'Terjadi kesalahan saat memproses streaming AI.')
+          }
+        } catch (e: any) {
+          if (eventType === 'error') throw e
+          console.warn('Gagal membaca event SSE:', e)
+        }
+      }
+    }
+  }
+
+  /**
+   * Memulai proses generate buku/literatur melalui endpoint modular step-by-step
    */
   const generateBook = async (
     title: string,
@@ -52,130 +103,146 @@ export function useBookGenerator() {
     currentActivity.value = 'Menyiapkan dokumen dan outline literatur...'
 
     abortController.value = new AbortController()
+    const signal = abortController.value.signal
 
     try {
-      const response = await fetch('/api/ai-generate-book-stream', {
+      // 1. OUTLINE
+      const outlineRes = await fetch('/api/ai/outline', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title,
-          category,
-          user_id: meta?.userId || null,
-          author: meta?.author || null
-        }),
-        signal: abortController.value.signal
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, category }),
+        signal
       })
 
-      if (!response.ok || !response.body) {
-        const errJson = await response.json().catch(() => ({}))
-        throw new Error(errJson?.statusMessage || 'Gagal memulai koneksi AI generator.')
+      if (!outlineRes.ok) {
+        const errJson = await outlineRes.json().catch(() => ({}))
+        throw new Error(errJson?.statusMessage || 'Gagal merancang outline literatur.')
       }
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder('utf-8')
-      let buffer = ''
+      const outlineData = await outlineRes.json()
+      const rawChapters: string[] = Array.isArray(outlineData.chapters) ? outlineData.chapters : []
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+      chapters.value = rawChapters.map((ch: string, idx: number) => ({
+        index: idx,
+        title: ch,
+        status: 'pending'
+      }))
+      // Tambahkan bab kesimpulan
+      chapters.value.push({
+        index: rawChapters.length,
+        title: 'Kesimpulan dan Rekomendasi',
+        status: 'pending'
+      })
 
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split('\n\n')
-        buffer = events.pop() || ''
+      if (signal.aborted) return
 
-        for (const evt of events) {
-          if (!evt.trim()) continue
+      // 2. PER-BAB STREAMING
+      const summaries: string[] = []
+      for (let i = 0; i < rawChapters.length; i++) {
+        if (signal.aborted) return
 
-          let eventType = 'message'
-          let eventData = ''
+        const chTitle = rawChapters[i]
+        currentChapterIndex.value = i
+        currentChapterText.value = ''
+        currentActivity.value = `Menulis ${chTitle}...`
+        const chItem = chapters.value.find(c => c.index === i)
+        if (chItem) chItem.status = 'writing'
 
-          const lines = evt.split('\n')
-          for (const line of lines) {
-            if (line.startsWith('event:')) {
-              eventType = line.replace('event:', '').trim()
-            } else if (line.startsWith('data:')) {
-              eventData = line.replace('data:', '').trim()
-            }
-          }
+        const prevSummary = summaries.length > 0 ? summaries.slice(-2).join('\n') : null
 
-          if (!eventData) continue
+        const chapterRes = await fetch('/api/ai/chapter-stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            chapterTitle: chTitle,
+            prevSummary
+          }),
+          signal
+        })
 
-          try {
-            const data = JSON.parse(eventData)
-
-            switch (eventType) {
-              case 'created':
-                documentId.value = data.documentId
-                currentActivity.value = 'Merancang outline bab komprehensif...'
-                break
-
-              case 'outline':
-                if (Array.isArray(data.chapters)) {
-                  chapters.value = data.chapters.map((ch: string, idx: number) => ({
-                    index: idx,
-                    title: ch,
-                    status: 'pending'
-                  }))
-                  // Tambahkan bab kesimpulan
-                  chapters.value.push({
-                    index: data.chapters.length,
-                    title: 'Kesimpulan dan Rekomendasi',
-                    status: 'pending'
-                  })
-                }
-                break
-
-              case 'chapter_start': {
-                const idx = data.index
-                currentChapterIndex.value = idx
-                currentChapterText.value = ''
-                currentActivity.value = `Menulis ${data.title}...`
-                const ch = chapters.value.find(c => c.index === idx)
-                if (ch) ch.status = 'writing'
-                break
-              }
-
-              case 'chapter_token':
-                currentChapterText.value += data.text
-                break
-
-              case 'chapter_done': {
-                const idx = data.index
-                const ch = chapters.value.find(c => c.index === idx)
-                if (ch) ch.status = 'done'
-                break
-              }
-
-              case 'references_start':
-                currentActivity.value = 'Menyusun grounding Daftar Pustaka dari OpenAlex...'
-                break
-
-              case 'references_done':
-                currentActivity.value = 'Menyelesaikan penyusunan karya...'
-                break
-
-              case 'done':
-                status.value = 'completed'
-                currentActivity.value = 'Literatur berhasil disusun sepenuhnya!'
-                if (data.documentId) {
-                  documentId.value = data.documentId
-                }
-                break
-
-              case 'error':
-                status.value = 'failed'
-                errorMessage.value = data.message || 'Terjadi kesalahan pada AI generator.'
-                break
-            }
-          } catch (jsonErr) {
-            console.warn('Gagal parse SSE data chunk:', jsonErr)
-          }
+        if (!chapterRes.ok) {
+          const errJson = await chapterRes.json().catch(() => ({}))
+          throw new Error(errJson?.statusMessage || `Gagal menulis bab "${chTitle}".`)
         }
+
+        let accumulated = ''
+        await readSseStream(
+          chapterRes,
+          (token) => {
+            accumulated += token
+            currentChapterText.value = accumulated
+          },
+          (doneData) => {
+            if (doneData.text) accumulated = doneData.text
+          }
+        )
+
+        if (chItem) chItem.status = 'done'
+        summaries.push(`- ${chTitle}: Membahas aspek fundamental topik tersebut.`)
       }
+
+      if (signal.aborted) return
+
+      // 3. KESIMPULAN
+      const conclusionIdx = rawChapters.length
+      currentChapterIndex.value = conclusionIdx
+      currentChapterText.value = ''
+      currentActivity.value = 'Menulis Kesimpulan dan Rekomendasi...'
+      const conclusionItem = chapters.value.find(c => c.index === conclusionIdx)
+      if (conclusionItem) conclusionItem.status = 'writing'
+
+      const conclusionRes = await fetch('/api/ai/conclusion-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          summaries: summaries.join('\n')
+        }),
+        signal
+      })
+
+      if (!conclusionRes.ok) {
+        const errJson = await conclusionRes.json().catch(() => ({}))
+        throw new Error(errJson?.statusMessage || 'Gagal menulis bab kesimpulan.')
+      }
+
+      let conclusionAcc = ''
+      await readSseStream(
+        conclusionRes,
+        (token) => {
+          conclusionAcc += token
+          currentChapterText.value = conclusionAcc
+        },
+        (doneData) => {
+          if (doneData.text) conclusionAcc = doneData.text
+        }
+      )
+
+      if (conclusionItem) conclusionItem.status = 'done'
+
+      if (signal.aborted) return
+
+      // 4. REFERENSI
+      currentActivity.value = 'Menyusun grounding Daftar Pustaka dari OpenAlex...'
+      try {
+        await fetch('/api/ai/references', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title }),
+          signal
+        })
+      } catch (refErr) {
+        console.warn('Gagal fetch referensi OpenAlex:', refErr)
+      }
+
+      if (signal.aborted) return
+
+      // 5. SELESAI
+      status.value = 'completed'
+      currentActivity.value = 'Literatur berhasil disusun sepenuhnya!'
     } catch (err: any) {
-      if (err.name === 'AbortError') return
+      if (err.name === 'AbortError' || signal.aborted) return
       console.error('Error saat generate literatur:', err)
       status.value = 'failed'
       errorMessage.value = err?.message || 'Terjadi gangguan pada koneksi ke server.'

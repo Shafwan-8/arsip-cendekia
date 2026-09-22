@@ -81,6 +81,31 @@ const formatCategory = (type: string) => {
   }
 }
 
+// Cek apakah suatu karya punya akses OA (bukan closed)
+const isOpenAccess = (work: OpenAlexWork) => {
+  const status = work.open_access?.oa_status
+  return work.open_access?.is_oa === true && status !== 'closed' && status !== undefined
+}
+
+// Ambil link terbaik: PDF langsung > DOI > fallback OpenAlex
+const getBestLink = (work: OpenAlexWork) => {
+  const bestOa = (work as any).best_oa_location
+  return (
+    bestOa?.pdf_url ||
+    work.primary_location?.pdf_url ||
+    work.open_access?.oa_url ||
+    (work.doi ? (work.doi.startsWith('http') ? work.doi : `https://doi.org/${work.doi}`) : work.id)
+  )
+}
+
+// Prioritas urutan: yang punya PDF langsung paling atas, lalu yang punya DOI
+const getLinkPriority = (work: OpenAlexWork): number => {
+  const bestOa = (work as any).best_oa_location
+  if (bestOa?.pdf_url || work.primary_location?.pdf_url) return 0
+  if (work.doi) return 1
+  return 2
+}
+
 // Fungsi Fetch Data dari OpenAlex API (Dibatasi 50 hasil)
 const fetchLiterature = async () => {
   const query = searchQuery.value.trim()
@@ -111,7 +136,10 @@ const fetchLiterature = async () => {
     // Filter OpenAlex
     const filterTokens: string[] = []
 
-    // 1. Filter Kategori / Type
+    // 1. Filter Open Access: hanya tampilkan yang bukan closed access
+    filterTokens.push('is_oa:true')
+
+    // 2. Filter Kategori / Type
     if (selectedCategory.value === 'Buku') {
       filterTokens.push('type:book')
     } else if (selectedCategory.value === 'Jurnal') {
@@ -120,7 +148,7 @@ const fetchLiterature = async () => {
       filterTokens.push('type:dissertation')
     }
 
-    // 2. Filter Tahun
+    // 3. Filter Tahun
     if (selectedYear.value === 'custom') {
       if (startYear.value && endYear.value) {
         filterTokens.push(`publication_year:${startYear.value}-${endYear.value}`)
@@ -139,8 +167,13 @@ const fetchLiterature = async () => {
 
     const response = await axios.get('https://api.openalex.org/works', { params })
 
-    works.value = response.data.results || []
+    const rawResults: OpenAlexWork[] = response.data.results || []
+
+    // Urutkan: yang punya PDF langsung di atas, lalu yang punya DOI
+    works.value = [...rawResults].sort((a, b) => getLinkPriority(a) - getLinkPriority(b))
+
     totalCount.value = response.data.meta?.count || 0
+    
   } catch (error: any) {
     console.error('Error fetching OpenAlex:', error)
     errorMessage.value = error.response?.data?.message || 'Gagal memuat data dari OpenAlex API. Periksa koneksi internet Anda.'
@@ -421,12 +454,12 @@ const resetFilter = () => {
                 <!-- Tombol Aksi Buka / Unduh -->
                 <td class="py-3.5 px-4 text-right whitespace-nowrap">
                   <a
-                    :href="work.primary_location?.pdf_url || work.open_access?.oa_url || work.doi || work.id"
+                    :href="getBestLink(work)"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 font-semibold transition-colors text-[11px]"
                   >
-                    <span>{{ work.open_access?.is_oa || work.primary_location?.pdf_url ? 'Akses PDF' : 'Buka' }}</span>
+                    <span>{{ (work as any).best_oa_location?.pdf_url || work.primary_location?.pdf_url ? 'Akses PDF' : 'Buka via DOI' }}</span>
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>

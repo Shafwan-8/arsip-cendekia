@@ -11,15 +11,24 @@ export function getGeminiClient(apiKey?: string): GoogleGenAI {
   return new GoogleGenAI({ apiKey: key })
 }
 
+let activeModelCache: string | null = null
+
 export function getGeminiModelName(): string {
-  return process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
+  return activeModelCache || process.env.GEMINI_MODEL || 'gemini-3.5-flash'
+}
+
+export function setGeminiWorkingModel(model: string): void {
+  activeModelCache = model
 }
 
 /**
- * Model-model cadangan jika model utama mengalami 503 (high demand)
+ * Model-model cadangan berkecepatan tinggi jika model utama mengalami 503 (high demand)
  */
 export function getGeminiFallbackModels(): string[] {
   const primary = getGeminiModelName()
-  const candidates = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-lite-latest']
+  const candidates = [
+    'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
+  ]
   return [primary, ...candidates.filter(m => m !== primary)]
 }

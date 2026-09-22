@@ -124,8 +124,59 @@ export const useBookGeneratorStore = defineStore('bookGenerator', () => {
   }
 
   /**
-   * Memulai alur generate AI melalui SSE stream
-   * TIDAK ADA query ke Supabase selama streaming berjalan (murni draft in-memory)
+   * Helper membaca SSE stream dan mengekstrak token secara real-time
+   */
+  async function readSseStream(
+    response: Response,
+    onToken: (text: string) => void,
+    onDone?: (data: any) => void
+  ) {
+    if (!response.body) return
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const events = buffer.split('\n\n')
+      buffer = events.pop() || ''
+
+      for (const evt of events) {
+        if (!evt.trim()) continue
+        let eventType = 'message'
+        let eventData = ''
+        const lines = evt.split('\n')
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            eventType = line.replace('event:', '').trim()
+          } else if (line.startsWith('data:')) {
+            eventData = line.replace('data:', '').trim()
+          }
+        }
+        if (!eventData) continue
+        try {
+          const parsed = JSON.parse(eventData)
+          if (eventType === 'token' && parsed.text) {
+            onToken(parsed.text)
+          } else if (eventType === 'done') {
+            if (onDone) onDone(parsed)
+          } else if (eventType === 'error') {
+            throw new Error(parsed.message || 'Terjadi kesalahan saat memproses streaming AI.')
+          }
+        } catch (e: any) {
+          if (eventType === 'error') throw e
+          console.warn('Gagal membaca event SSE:', e)
+        }
+      }
+    }
+  }
+
+  /**
+   * Memulai alur generate AI per-bab (step-by-step modular)
+   * Setiap bab diproses dalam request independen (~10-15s), kebal dari timeout 60 detik Vercel Hobby.
    */
   async function generate(newTitle: string, newCategory: typeof category.value) {
     resetDraft()
@@ -135,178 +186,218 @@ export const useBookGeneratorStore = defineStore('bookGenerator', () => {
     currentActivity.value = 'Merancang outline literatur komprehensif...'
 
     abortController.value = new AbortController()
+    const signal = abortController.value.signal
 
     try {
-      const response = await fetch('/api/ai-generate-book-stream', {
+      // 1. TAHAP OUTLINE: Mendapatkan struktur bab dan daftar isi (~4-8 detik)
+      const outlineRes = await fetch('/api/ai/outline', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.value,
           category: category.value
         }),
-        signal: abortController.value.signal
+        signal
       })
 
-      if (!response.ok || !response.body) {
-        const errJson = await response.json().catch(() => ({}))
-        throw new Error(errJson?.statusMessage || 'Gagal memulai koneksi AI generator.')
+      if (!outlineRes.ok) {
+        const errJson = await outlineRes.json().catch(() => ({}))
+        throw new Error(errJson?.statusMessage || 'Gagal merancang outline literatur.')
       }
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder('utf-8')
-      let buffer = ''
-      let rawChaptersList: string[] = []
+      const outlineData = await outlineRes.json()
+      const rawChaptersList: string[] = Array.isArray(outlineData.chapters) ? outlineData.chapters : []
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+      if (rawChaptersList.length === 0) {
+        throw new Error('Daftar isi/outline tidak memiliki bab yang valid.')
+      }
 
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split('\n\n')
-        buffer = events.pop() || ''
+      // Siapkan kerangka dokumen in-memory
+      const newBlocks: DocumentContentBlock[] = []
+      let order = 1
 
-        for (const evt of events) {
-          if (!evt.trim()) continue
+      // 1. Daftar Isi
+      newBlocks.push({
+        id: 'temp-daftar-isi',
+        document_id: '',
+        block_order: order++,
+        section_type: 'daftar_isi',
+        title: 'Daftar Isi',
+        content: { raw_markdown: outlineData.daftarIsiMarkdown || '# Daftar Isi' }
+      })
 
-          let eventType = 'message'
-          let eventData = ''
+      // 2. Kerangka Bab-bab
+      rawChaptersList.forEach((chTitle, idx) => {
+        newBlocks.push({
+          id: `temp-bab-${idx}`,
+          document_id: '',
+          block_order: order++,
+          section_type: 'bab',
+          title: chTitle,
+          content: { raw_markdown: '' }
+        })
+      })
 
-          const lines = evt.split('\n')
-          for (const line of lines) {
-            if (line.startsWith('event:')) {
-              eventType = line.replace('event:', '').trim()
-            } else if (line.startsWith('data:')) {
-              eventData = line.replace('data:', '').trim()
+      // 3. Bab Kesimpulan
+      newBlocks.push({
+        id: 'temp-kesimpulan',
+        document_id: '',
+        block_order: order++,
+        section_type: 'kesimpulan',
+        title: 'Kesimpulan dan Rekomendasi',
+        content: { raw_markdown: '' }
+      })
+
+      // 4. Bab Daftar Pustaka
+      newBlocks.push({
+        id: 'temp-daftar-pustaka',
+        document_id: '',
+        block_order: order++,
+        section_type: 'daftar_pustaka',
+        title: 'Daftar Pustaka',
+        content: { raw_markdown: '' }
+      })
+
+      chapters.value = newBlocks
+      activeBlockId.value = newBlocks[0]?.id || null
+
+      if (signal.aborted) return
+
+      // 2. TAHAP LOOP PENULISAN BAB (Streaming per bab, ~10-15s per request)
+      const chapterSummaries: string[] = []
+
+      for (let i = 0; i < rawChaptersList.length; i++) {
+        if (signal.aborted) return
+
+        const chapterTitle = rawChaptersList[i]
+        currentStreamingIndex.value = i
+        currentStreamingText.value = ''
+        currentActivity.value = `Menulis ${chapterTitle}...`
+
+        const prevSummary = chapterSummaries.length > 0 ? chapterSummaries.slice(-2).join('\n') : null
+
+        const chapterRes = await fetch('/api/ai/chapter-stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title.value,
+            chapterTitle,
+            prevSummary
+          }),
+          signal
+        })
+
+        if (!chapterRes.ok) {
+          const errJson = await chapterRes.json().catch(() => ({}))
+          throw new Error(errJson?.statusMessage || `Gagal menulis bab "${chapterTitle}".`)
+        }
+
+        let chapterAccumulated = ''
+        await readSseStream(
+          chapterRes,
+          (token) => {
+            chapterAccumulated += token
+            currentStreamingText.value = chapterAccumulated
+          },
+          (doneData) => {
+            if (doneData.text) {
+              chapterAccumulated = doneData.text
             }
           }
+        )
 
-          if (!eventData) continue
+        if (signal.aborted) return
 
-          try {
-            const data = JSON.parse(eventData)
+        // Simpan hasil bab ke state
+        const babBlock = chapters.value.find(c => c.id === `temp-bab-${i}`)
+        if (babBlock) {
+          babBlock.content = { raw_markdown: chapterAccumulated }
+        }
 
-            switch (eventType) {
-              case 'outline': {
-                rawChaptersList = Array.isArray(data.chapters) ? data.chapters : []
-                const newBlocks: DocumentContentBlock[] = []
-                let order = 1
+        chapterSummaries.push(`- ${chapterTitle}: Membahas aspek fundamental dan analisis mendalam topik ini.`)
+      }
 
-                // 1. Daftar Isi
-                newBlocks.push({
-                  id: 'temp-daftar-isi',
-                  document_id: '',
-                  block_order: order++,
-                  section_type: 'daftar_isi',
-                  title: 'Daftar Isi',
-                  content: { raw_markdown: data.daftarIsiMarkdown || '# Daftar Isi' }
-                })
+      if (signal.aborted) return
 
-                // 2. Bab-bab buku
-                rawChaptersList.forEach((chTitle, idx) => {
-                  newBlocks.push({
-                    id: `temp-bab-${idx}`,
-                    document_id: '',
-                    block_order: order++,
-                    section_type: 'bab',
-                    title: chTitle,
-                    content: { raw_markdown: '' }
-                  })
-                })
+      // 3. TAHAP PENULISAN BAB KESIMPULAN (Streaming ~8-12 detik)
+      const conclusionIndex = rawChaptersList.length
+      currentStreamingIndex.value = conclusionIndex
+      currentStreamingText.value = ''
+      currentActivity.value = 'Menulis Kesimpulan dan Rekomendasi...'
 
-                // 3. Bab Kesimpulan
-                newBlocks.push({
-                  id: 'temp-kesimpulan',
-                  document_id: '',
-                  block_order: order++,
-                  section_type: 'kesimpulan',
-                  title: 'Kesimpulan dan Rekomendasi',
-                  content: { raw_markdown: '' }
-                })
+      const conclusionRes = await fetch('/api/ai/conclusion-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.value,
+          summaries: chapterSummaries.join('\n')
+        }),
+        signal
+      })
 
-                // 4. Daftar Pustaka
-                newBlocks.push({
-                  id: 'temp-daftar-pustaka',
-                  document_id: '',
-                  block_order: order++,
-                  section_type: 'daftar_pustaka',
-                  title: 'Daftar Pustaka',
-                  content: { raw_markdown: '' }
-                })
+      if (!conclusionRes.ok) {
+        const errJson = await conclusionRes.json().catch(() => ({}))
+        throw new Error(errJson?.statusMessage || 'Gagal menulis bab kesimpulan.')
+      }
 
-                chapters.value = newBlocks
-                activeBlockId.value = newBlocks[0]?.id || null
-                break
-              }
-
-              case 'chapter_start': {
-                currentStreamingIndex.value = data.index
-                currentStreamingText.value = ''
-                currentActivity.value = `Menulis ${data.title}...`
-                break
-              }
-
-              case 'chapter_token': {
-                currentStreamingText.value += data.text
-                break
-              }
-
-              case 'chapter_done': {
-                const targetIdx = data.index
-                if (data.title === 'Kesimpulan dan Rekomendasi') {
-                  const kesimpulanBlock = chapters.value.find(c => c.section_type === 'kesimpulan')
-                  if (kesimpulanBlock) {
-                    kesimpulanBlock.content = { raw_markdown: data.text }
-                  }
-                } else if (typeof targetIdx === 'number' && rawChaptersList[targetIdx]) {
-                  const babBlock = chapters.value.find(c => c.id === `temp-bab-${targetIdx}`)
-                  if (babBlock) {
-                    babBlock.content = { raw_markdown: data.text }
-                  }
-                }
-                break
-              }
-
-              case 'references_start': {
-                currentActivity.value = 'Menyusun grounding Daftar Pustaka dari OpenAlex...'
-                break
-              }
-
-              case 'references_done': {
-                const pustakaBlock = chapters.value.find(c => c.section_type === 'daftar_pustaka')
-                if (pustakaBlock) {
-                  pustakaBlock.content = { raw_markdown: data.markdown }
-                }
-                currentActivity.value = 'Menyelesaikan penyusunan karya...'
-                break
-              }
-
-              case 'done': {
-                status.value = 'draft_ready'
-                currentActivity.value = 'Literatur berhasil disusun sepenuhnya!'
-                currentStreamingIndex.value = null
-                currentStreamingText.value = ''
-                if (chapters.value.length > 0 && !activeBlockId.value) {
-                  activeBlockId.value = chapters.value[0].id
-                }
-                break
-              }
-
-              case 'error': {
-                status.value = 'failed'
-                errorMessage.value = data.message || 'Terjadi kesalahan pada generator AI.'
-                break
-              }
-            }
-          } catch (jsonErr) {
-            console.warn('Gagal parse chunk data SSE:', jsonErr)
+      let conclusionAccumulated = ''
+      await readSseStream(
+        conclusionRes,
+        (token) => {
+          conclusionAccumulated += token
+          currentStreamingText.value = conclusionAccumulated
+        },
+        (doneData) => {
+          if (doneData.text) {
+            conclusionAccumulated = doneData.text
           }
         }
+      )
+
+      if (signal.aborted) return
+
+      const kesimpulanBlock = chapters.value.find(c => c.section_type === 'kesimpulan')
+      if (kesimpulanBlock) {
+        kesimpulanBlock.content = { raw_markdown: conclusionAccumulated }
+      }
+
+      // 4. TAHAP DAFTAR PUSTAKA: Grounding OpenAlex (~2-4 detik)
+      currentActivity.value = 'Menyusun grounding Daftar Pustaka dari OpenAlex...'
+
+      try {
+        const referencesRes = await fetch('/api/ai/references', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title.value
+          }),
+          signal
+        })
+
+        if (referencesRes.ok) {
+          const refData = await referencesRes.json()
+          const pustakaBlock = chapters.value.find(c => c.section_type === 'daftar_pustaka')
+          if (pustakaBlock) {
+            pustakaBlock.content = { raw_markdown: refData.markdown }
+          }
+        }
+      } catch (refErr) {
+        console.warn('[useBookGeneratorStore] Pencarian referensi gagal, melanjutkan tanpa grounding luar:', refErr)
+      }
+
+      if (signal.aborted) return
+
+      // 5. PENYELESAIAN
+      status.value = 'draft_ready'
+      currentActivity.value = 'Literatur berhasil disusun sepenuhnya!'
+      currentStreamingIndex.value = null
+      currentStreamingText.value = ''
+      if (chapters.value.length > 0 && !activeBlockId.value) {
+        activeBlockId.value = chapters.value[0].id
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') return
-      console.error('Error streaming literatur AI:', err)
+      if (err.name === 'AbortError' || signal.aborted) return
+      console.error('Error saat proses pembuatan literatur:', err)
       status.value = 'failed'
       errorMessage.value = err?.message || 'Terjadi gangguan koneksi ke server.'
     } finally {
