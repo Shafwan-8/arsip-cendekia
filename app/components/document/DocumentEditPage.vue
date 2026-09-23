@@ -38,8 +38,8 @@ useHead({
         </div>
       </div>
 
-      <!-- Jalur 1: Dokumen Hasil AI Generation -> AiDocumentEditor (TipTap per bab) -->
-      <div v-else-if="document?.source === 'ai_generated'">
+      <!-- Jalur 1: Dokumen Hasil AI Generation & Uploaded Editable -> AiDocumentEditor (TipTap per bab & sub-bab) -->
+      <div v-else-if="document?.source === 'ai_generated' || document?.source === 'uploaded_editable'">
         <AiDocumentEditor
           :document-id="document.id"
           :config="config"

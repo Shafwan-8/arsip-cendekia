@@ -92,7 +92,7 @@ export interface PdfDocumentInfo {
   fileUrl: string
   category: string
   pages?: number
-  source?: 'upload' | 'ai_generated'
+  source?: 'upload' | 'ai_generated' | 'uploaded_editable'
 }
 
 export interface PdfEditorState {

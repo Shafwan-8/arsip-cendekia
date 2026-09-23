@@ -2,15 +2,23 @@
 import { ref } from 'vue'
 import type { DocumentCategoryConfig, DocumentUploadForm } from '~/types/document'
 
-const props = defineProps<{
-  isOpen: boolean
-  isUploading: boolean
-  errorMessage: string
-  isDragging: boolean
-  selectedFile: File | null
-  form: DocumentUploadForm
-  config: DocumentCategoryConfig
-}>()
+const props = withDefaults(
+  defineProps<{
+    isOpen: boolean
+    isUploading: boolean
+    errorMessage: string
+    isDragging: boolean
+    selectedFile: File | null
+    form: DocumentUploadForm
+    config: DocumentCategoryConfig
+    uploadMode?: 'edit_ai' | 'annotate'
+    uploadProgressText?: string
+  }>(),
+  {
+    uploadMode: 'edit_ai',
+    uploadProgressText: ''
+  }
+)
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -19,6 +27,7 @@ const emit = defineEmits<{
   (e: 'dropFile', event: DragEvent): void
   (e: 'dragOver'): void
   (e: 'dragLeave'): void
+  (e: 'update:uploadMode', mode: 'edit_ai' | 'annotate'): void
 }>()
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -152,6 +161,63 @@ const triggerFileInput = () => {
             </div>
           </div>
 
+          <!-- Pilihan Mode Penanganan PDF -->
+          <div class="space-y-2 pt-1">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              Tujuan Pengunggahan Dokumen
+            </label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Opsi 1: Mode Editor Terstruktur -->
+              <div
+                @click="$emit('update:uploadMode', 'edit_ai')"
+                :class="[
+                  'p-3.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between space-y-2 select-none',
+                  uploadMode === 'edit_ai'
+                    ? 'bg-rose-500/10 border-rose-500/50 ring-1 ring-rose-500/30'
+                    : 'bg-[#090b0e] border-slate-800 hover:border-slate-700 opacity-70 hover:opacity-100'
+                ]"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                    </svg>
+                    <span class="text-xs font-bold text-white">Mode Editor Terstruktur</span>
+                  </div>
+                  <span class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    Rekomendasi
+                  </span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-snug">
+                  AI Mengekstrak Bab & Sub-bab agar teks dokumen dapat dibaca dan diedit secara leluasa.
+                </p>
+              </div>
+
+              <!-- Opsi 2: Mode Anotasi PDF Canvas -->
+              <div
+                @click="$emit('update:uploadMode', 'annotate')"
+                :class="[
+                  'p-3.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between space-y-2 select-none',
+                  uploadMode === 'annotate'
+                    ? 'bg-blue-500/10 border-blue-500/50 ring-1 ring-blue-500/30'
+                    : 'bg-[#090b0e] border-slate-800 hover:border-slate-700 opacity-70 hover:opacity-100'
+                ]"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
+                    </svg>
+                    <span class="text-xs font-bold text-white">Mode Anotasi Canvas</span>
+                  </div>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-snug">
+                  Simpan berkas PDF asli untuk dibaca, diberi coretan, stabilo, dan tanda tangan digital pada kanvas.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <!-- Text Judul File / Dokumen -->
           <div class="space-y-1.5">
             <label for="docTitle" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
@@ -236,7 +302,18 @@ const triggerFileInput = () => {
       </div>
 
       <!-- Footer Modal (Tombol Submit) -->
-      <div class="p-4 sm:p-6 border-t border-slate-800/90 bg-[#0d1015] flex items-center justify-end space-x-3">
+      <div class="p-4 sm:p-6 border-t border-slate-800/90 bg-[#0d1015] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div v-if="isUploading && uploadProgressText" class="text-xs text-rose-400 flex items-center gap-2 animate-pulse">
+          <svg class="w-4 h-4 animate-spin text-rose-500" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span class="font-medium">{{ uploadProgressText }}</span>
+        </div>
+        <div v-else class="text-[11px] text-slate-500 hidden sm:block">
+          {{ uploadMode === 'edit_ai' ? 'Dokumen akan diproses otomatis oleh AI' : 'Dokumen akan disimpan langsung ke arsip' }}
+        </div>
+
         <button
           type="submit"
           form="uploadDocForm"
@@ -248,7 +325,13 @@ const triggerFileInput = () => {
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
           </svg>
-          <span>{{ isUploading ? 'Mengunggah...' : 'Kirim Berkas' }}</span>
+          <span>
+            {{
+              isUploading
+                ? (uploadMode === 'edit_ai' ? 'Mengekstrak AI...' : 'Mengunggah...')
+                : (uploadMode === 'edit_ai' ? 'Kirim & Buka di Editor' : 'Kirim Berkas')
+            }}
+          </span>
         </button>
       </div>
     </div>

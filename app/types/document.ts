@@ -16,7 +16,7 @@ export interface DocumentItem {
   extraction_error?: string | null
   extraction_started_at?: string | null
   extraction_completed_at?: string | null
-  source?: 'upload' | 'ai_generated'
+  source?: 'upload' | 'ai_generated' | 'uploaded_editable'
   ai_generation_status?: 'pending' | 'generating' | 'completed' | 'failed'
   ai_generation_error?: string | null
   ai_generation_started_at?: string | null

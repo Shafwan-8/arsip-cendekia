@@ -78,8 +78,8 @@ export const useDocumentEditor = (options: UseDocumentEditorOptions) => {
             })
           }
 
-          // Jika dokumen merupakan hasil AI generation, lewati seluruh proses fetch pdfBytes
-          if (item.source === 'ai_generated') {
+          // Jika dokumen merupakan hasil AI generation atau uploaded_editable, lewati seluruh proses fetch pdfBytes
+          if (item.source === 'ai_generated' || item.source === 'uploaded_editable') {
             document.value = {
               id: docId,
               title: docTitleResolved || 'Dokumen AI',
@@ -88,7 +88,7 @@ export const useDocumentEditor = (options: UseDocumentEditorOptions) => {
               fileUrl: fileUrlToFetch || '',
               category: resolvedCategory,
               pages: resolvedPages,
-              source: 'ai_generated'
+              source: item.source
             }
             isLoading.value = false
             return

@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import type { DocumentUploadForm } from '~/types/document'
 import { formatFileSize, createStoragePath } from '~/utils/document'
 
@@ -10,12 +11,15 @@ export interface UseDocumentUploadOptions {
 }
 
 export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
+  const router = useRouter()
   const { category, storageFolder, getActiveUserId, onSuccess } = options
   const { client } = useSupabase()
 
   const isUploadModalOpen = ref(false)
   const isUploading = ref(false)
   const uploadErrorMessage = ref('')
+  const uploadProgressText = ref('')
+  const uploadMode = ref<'edit_ai' | 'annotate'>('edit_ai')
   const isDragging = ref(false)
   const selectedFile = ref<File | null>(null)
   const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -46,6 +50,8 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
     }
     selectedFile.value = null
     uploadErrorMessage.value = ''
+    uploadProgressText.value = ''
+    uploadMode.value = 'edit_ai'
     if (fileInputRef.value) {
       fileInputRef.value.value = ''
     }
@@ -149,6 +155,8 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
       const yearVal = uploadForm.value.year ? Number(uploadForm.value.year) : 0
       const pagesVal = uploadForm.value.pages ? Number(uploadForm.value.pages) : 0
 
+      const isEditAi = uploadMode.value === 'edit_ai'
+
       const newRecord = {
         user_id: currentUserId,
         title: uploadForm.value.title.trim(),
@@ -161,19 +169,53 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
         file_size: uploadForm.value.file_size,
         file_url: filePublicUrl,
         status: uploadForm.value.status,
-        source: 'upload',
+        source: isEditAi ? 'uploaded_editable' : 'upload',
+        extraction_status: isEditAi ? 'processing' : 'pending',
         uploaded_at: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
       }
 
-      const { error: insertError } = await client
+      const { data: insertedData, error: insertError } = await client
         .from('documents')
         .insert([newRecord])
+        .select()
+        .single()
 
       if (insertError) {
         throw new Error(`Gagal menyimpan data ke tabel documents: ${insertError.message}`)
       }
 
       const uploadedTitle = uploadForm.value.title
+
+      // Jika mode Editor Terstruktur dipilih, jalankan ekstraksi lokal
+      if (isEditAi && insertedData?.id) {
+        uploadProgressText.value = 'Mengekstrak dan menyusun struktur Bab & Sub-bab...'
+        try {
+          await $fetch('/api/ai/extract-pdf-literature', {
+            method: 'POST',
+            body: {
+              document_id: insertedData.id,
+              storage_path: filePath
+            }
+          })
+        } catch (extractErr: any) {
+          console.warn('Peringatan: Ekstraksi AI menghadapi kendala, dokumen tetap dapat dibuka:', extractErr)
+        }
+
+        isUploadModalOpen.value = false
+        resetUploadForm()
+
+        if (onSuccess) {
+          await onSuccess(uploadedTitle)
+        }
+
+        // Alihkan langsung ke halaman editor dokumen
+        await router.push({
+          path: `/${category}/edit`,
+          query: { id: insertedData.id }
+        })
+        return
+      }
+
       isUploadModalOpen.value = false
       resetUploadForm()
 
@@ -185,6 +227,7 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
       uploadErrorMessage.value = err?.message || 'Terjadi kesalahan saat mengunggah berkas.'
     } finally {
       isUploading.value = false
+      uploadProgressText.value = ''
     }
   }
 
@@ -193,6 +236,8 @@ export const useDocumentUpload = (options: UseDocumentUploadOptions) => {
     selectedFile,
     isUploading,
     uploadErrorMessage,
+    uploadProgressText,
+    uploadMode,
     isDragging,
     fileInputRef,
     isUploadModalOpen,

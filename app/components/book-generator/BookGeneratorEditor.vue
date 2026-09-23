@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, onBeforeUnmount, ref } from 'vue'
+import { watch, onBeforeUnmount, ref, nextTick } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -12,11 +12,15 @@ import TextAlign from '@tiptap/extension-text-align'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import { marked } from 'marked'
-import type { DocumentContentBlock } from '~/types/documentContentBlock'
+import type { DocumentContentBlock, DocumentSubsection } from '~/types/documentContentBlock'
 import { useContentImageUpload } from '~/composables/document/useContentImageUpload'
 
 const props = defineProps<{
   block: DocumentContentBlock | null
+  documentTitle?: string
+  category?: 'buku' | 'jurnal' | 'skripsi' | string
+  activeSubsection?: DocumentSubsection | null
+  activeSubsectionId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -153,6 +157,78 @@ watch(
       loadBlockContent(props.block)
     }
   }
+)
+
+// Navigasi & Auto-Scroll Langsung ke Sub-bab yang dipilih di Sidebar
+const scrollToActiveSubsection = (sub: DocumentSubsection | null) => {
+  if (!sub) return
+  nextTick(() => {
+    let targetEl: Element | null = null
+
+    // 1. Coba cari elemen dengan id atau data-sub-id
+    if (sub.id) {
+      targetEl = document.querySelector(`[data-sub-id="${sub.id}"]`) || document.getElementById(sub.id)
+    }
+
+    // 2. Fallback: Cari heading dengan teks judul sub-bab
+    if (!targetEl) {
+      const headings = document.querySelectorAll('.prose h2, .prose h3, .prose h4')
+      const targetTitle = (sub.title || '').trim().toLowerCase()
+      const targetCode = (sub.code || '').trim().toLowerCase()
+
+      for (const h of headings) {
+        const txt = (h.textContent || '').trim().toLowerCase()
+        if (
+          (targetTitle && txt.includes(targetTitle)) ||
+          (targetCode && (txt.startsWith(targetCode + '.') || txt.startsWith(targetCode + ' ')))
+        ) {
+          targetEl = h
+          break
+        }
+      }
+    }
+
+    if (targetEl) {
+      // Scroll secara halus dan posisikan heading di tengah/atas layar editor
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+      // Efek visual highlight pulsing
+      targetEl.classList.remove('sub-highlight')
+      void (targetEl as HTMLElement).offsetWidth
+      targetEl.classList.add('sub-highlight')
+
+      setTimeout(() => {
+        targetEl?.classList.remove('sub-highlight')
+      }, 3000)
+
+      // Arahkan kursor TipTap langsung ke posisi awal sub-bab tersebut
+      if (editor.value) {
+        try {
+          const domPos = editor.value.view.posAtDOM(targetEl, 0)
+          if (domPos >= 0) {
+            editor.value.commands.setTextSelection(domPos)
+            editor.value.commands.focus()
+          }
+        } catch {
+          // ignore selection errors
+        }
+      }
+    }
+  })
+}
+
+// Pantau perubahan sub-bab aktif dan jalankan scroll otomatis
+watch(
+  () => [props.activeSubsectionId, props.block?.id],
+  ([newSubId, newBlockId], [oldSubId, oldBlockId]) => {
+    if (newSubId && props.activeSubsection) {
+      const delay = newBlockId !== oldBlockId ? 300 : 60
+      setTimeout(() => {
+        scrollToActiveSubsection(props.activeSubsection!)
+      }, delay)
+    }
+  },
+  { deep: true }
 )
 
 onBeforeUnmount(() => {
@@ -544,18 +620,30 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Title of Active Section Header -->
-    <div v-if="block" class="px-6 py-3 border-b border-slate-800/80 bg-[#090b0e]/50 flex items-center justify-between">
-      <div class="space-y-0.5">
+    <div v-if="block" class="px-6 py-3 border-b border-slate-800/80 bg-[#090b0e]/50 flex items-center justify-between gap-3">
+      <div class="space-y-0.5 min-w-0">
         <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400">
           Sedang Mengedit Bagian
         </span>
-        <h2 class="text-base font-bold text-white">
-          {{ block.title }}
-        </h2>
+        <div class="flex items-center gap-2 flex-wrap">
+          <h2 class="text-base font-bold text-white truncate">
+            {{ block.title }}
+          </h2>
+          <button
+            v-if="activeSubsection"
+            type="button"
+            @click="scrollToActiveSubsection(activeSubsection)"
+            class="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 transition-all flex items-center gap-1.5 cursor-pointer truncate"
+            title="Klik untuk scroll ke posisi sub-bab ini di editor"
+          >
+            <span>Sub-bab: {{ activeSubsection.code }}. {{ activeSubsection.title }}</span>
+            <svg class="w-3 h-3 text-rose-400 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </button>
+        </div>
       </div>
-      <span class="text-[11px] text-slate-500 hidden sm:inline">
-        Tersedia fitur Drag & Drop gambar atau Paste gambar langsung ke editor
-      </span>
+
     </div>
 
     <!-- TipTap Editor Content Container wrapped in ClientOnly -->
@@ -573,6 +661,27 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+/* Efek visual highlight saat navigasi ke sub-bab */
+.sub-highlight {
+  animation: highlightPulse 2.8s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: rgba(244, 63, 94, 0.15) !important;
+  border-left: 4px solid #f43f5e !important;
+  padding-left: 10px !important;
+  border-radius: 6px !important;
+}
+
+@keyframes highlightPulse {
+  0% {
+    background-color: rgba(244, 63, 94, 0.45);
+  }
+  70% {
+    background-color: rgba(244, 63, 94, 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 /* Prose dark styles for TipTap */
 .prose h1 {
   font-size: 1.5rem;

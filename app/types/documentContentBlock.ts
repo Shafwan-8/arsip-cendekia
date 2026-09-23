@@ -1,13 +1,28 @@
 export type ContentBlockSectionType = 'daftar_isi' | 'bab' | 'kesimpulan' | 'daftar_pustaka'
 export type AiGenerationStatus = 'pending' | 'generating' | 'completed' | 'failed'
 
+export interface DocumentSubsection {
+  id: string
+  code: string
+  title: string
+  content?: string
+  content_html?: string
+}
+
+export interface ChapterBlockContent {
+  html?: string
+  raw_markdown?: string
+  subsections?: DocumentSubsection[]
+  [key: string]: any
+}
+
 export interface DocumentContentBlock {
   id: string
   document_id: string | number
   block_order: number
   section_type: ContentBlockSectionType
   title: string
-  content: Record<string, any> // TipTap JSON
+  content: ChapterBlockContent | Record<string, any> // TipTap JSON or HTML + Subsections
   created_at?: string
   updated_at?: string
 }

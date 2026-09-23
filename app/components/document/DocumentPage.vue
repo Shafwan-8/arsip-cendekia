@@ -56,6 +56,8 @@ const {
   selectedFile,
   isUploading,
   uploadErrorMessage,
+  uploadProgressText,
+  uploadMode,
   isDragging,
   isUploadModalOpen,
   openUploadModal,
@@ -198,12 +200,15 @@ onMounted(() => {
       :is-open="isUploadModalOpen"
       :is-uploading="isUploading"
       :error-message="uploadErrorMessage"
+      :upload-progress-text="uploadProgressText"
+      :upload-mode="uploadMode"
       :is-dragging="isDragging"
       :selected-file="selectedFile"
       :form="uploadForm"
       :config="config"
       @close="closeUploadModal"
       @submit="handleUploadSubmit"
+      @update:upload-mode="uploadMode = $event"
       @file-change="onFileChange"
       @drop-file="onDropFile"
       @drag-over="isDragging = true"

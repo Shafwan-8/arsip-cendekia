@@ -63,6 +63,24 @@ onMounted(async () => {
   }
 })
 
+const activeSubsectionId = ref<string | null>(null)
+
+const activeSubsection = computed(() => {
+  if (!activeBlock.value || !activeSubsectionId.value) return null
+  const subs = (activeBlock.value.content as any)?.subsections || []
+  return subs.find((s: any) => s.id === activeSubsectionId.value) || null
+})
+
+const handleSelectChapter = (blockId: string) => {
+  selectBlock(blockId)
+  activeSubsectionId.value = null
+}
+
+const handleSelectSubsection = (blockId: string, subId: string) => {
+  selectBlock(blockId)
+  activeSubsectionId.value = subId
+}
+
 const handleEditorUpdate = (newContent: Record<string, any>) => {
   saveSuccessMessage.value = ''
   if (activeBlockId.value) {
@@ -106,7 +124,7 @@ const handleDownloadPdf = async () => {
             class="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
             :class="config.theme.badgeBg + ' ' + config.theme.badgeText + ' border ' + config.theme.badgeBorder"
           >
-            {{ config.label }} AI
+            {{ config.label }}
           </span>
           <span class="text-xs text-slate-500">• Editor Konten Terstruktur</span>
         </div>
@@ -171,11 +189,17 @@ const handleDownloadPdf = async () => {
       <BookGeneratorChapterSidebar
         :blocks="blocks"
         :active-block-id="activeBlockId"
-        @select="selectBlock"
+        :active-subsection-id="activeSubsectionId"
+        @select="handleSelectChapter"
+        @select-subsection="handleSelectSubsection"
       />
 
       <BookGeneratorEditor
         :block="activeBlock"
+        :document-title="documentTitle"
+        :category="config.category"
+        :active-subsection="activeSubsection"
+        :active-subsection-id="activeSubsectionId"
         @update="handleEditorUpdate"
       />
     </div>
