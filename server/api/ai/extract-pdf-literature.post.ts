@@ -62,19 +62,33 @@ export default defineEventHandler(async (event) => {
     .eq('id', documentId)
 
   try {
-    // 3. Unduh berkas PDF dari Supabase Storage
+    // 3. Unduh berkas PDF dari Supabase Storage (dengan fallback ke file_url publik)
+    let pdfBuffer: Buffer | null = null
     const { data: fileBlob, error: downloadError } = await supabase.storage
       .from('arsip_pdf')
       .download(storagePath)
 
-    if (downloadError || !fileBlob) {
-      throw new Error(`Gagal mengunduh berkas PDF dari Storage: ${downloadError?.message || 'File kosong'}`)
+    if (!downloadError && fileBlob) {
+      const arrayBuffer = await fileBlob.arrayBuffer()
+      pdfBuffer = Buffer.from(arrayBuffer)
+    } else if (document.file_url) {
+      // Fallback unduh langsung melalui URL publik file
+      try {
+        const resp = await fetch(document.file_url)
+        if (resp.ok) {
+          const arrayBuffer = await resp.arrayBuffer()
+          pdfBuffer = Buffer.from(arrayBuffer)
+        }
+      } catch (fetchErr) {
+        console.warn('[extract-pdf-literature] Fallback fetch file_url gagal:', fetchErr)
+      }
     }
 
-    const arrayBuffer = await fileBlob.arrayBuffer()
-    const pdfBuffer = Buffer.from(arrayBuffer)
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      throw new Error(`Gagal mengunduh berkas PDF dari Storage: ${downloadError?.message || 'File tidak dapat diakses atau kosong'}`)
+    }
 
-    // 4. Ekstrak teks secara lokal menggunakan pdfjs-dist (0 token, 100% teks utuh tanpa pihak ketiga)
+    // 4. Ekstrak teks secara lokal menggunakan unpdf (0 token, 100% teks utuh tanpa pihak ketiga, kompatibel serverless)
     const extractionResult = await parsePdfToLiteratureStructure(pdfBuffer, document.title)
 
     if (!extractionResult || !extractionResult.chapters || extractionResult.chapters.length === 0) {
@@ -200,13 +214,17 @@ export default defineEventHandler(async (event) => {
   } catch (err: any) {
     console.error(`[extract-pdf-literature] Gagal memproses dokumen ${documentId}:`, err)
 
-    await supabase
-      .from('documents')
-      .update({
-        extraction_status: 'failed',
-        extraction_error: err?.message || 'Gagal mengekstrak struktur PDF.'
-      })
-      .eq('id', documentId)
+    try {
+      await supabase
+        .from('documents')
+        .update({
+          extraction_status: 'failed',
+          extraction_error: err?.message || 'Gagal mengekstrak struktur PDF.'
+        })
+        .eq('id', documentId)
+    } catch (dbErr) {
+      console.warn('[extract-pdf-literature] Gagal update status error ke DB:', dbErr)
+    }
 
     throw createError({
       statusCode: 500,

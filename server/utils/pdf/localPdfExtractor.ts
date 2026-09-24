@@ -132,16 +132,10 @@ export async function parsePdfToLiteratureStructure(
   buffer: Buffer,
   fallbackTitle?: string
 ): Promise<LocalExtractedPdfResult> {
-  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const { getDocumentProxy } = await import('unpdf')
   const uint8Array = new Uint8Array(buffer)
 
-  const loadingTask = pdfjsLib.getDocument({
-    data: uint8Array,
-    useSystemFonts: true,
-    isEvalSupported: false
-  })
-
-  const pdfDoc = await loadingTask.promise
+  const pdfDoc = await getDocumentProxy(uint8Array)
   const numPages = pdfDoc.numPages
 
   if (numPages === 0) {
