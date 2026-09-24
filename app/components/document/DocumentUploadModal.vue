@@ -184,9 +184,6 @@ const triggerFileInput = () => {
                     </svg>
                     <span class="text-xs font-bold text-white">Mode Editor Terstruktur</span>
                   </div>
-                  <span class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                    Rekomendasi
-                  </span>
                 </div>
                 <p class="text-[11px] text-slate-400 leading-snug">
                   AI Mengekstrak Bab & Sub-bab agar teks dokumen dapat dibaca dan diedit secara leluasa.
